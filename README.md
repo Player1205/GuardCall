@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="docs/hero.png" alt="GuardCall Hero Banner" width="600" style="border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);" />
+  <img src="docs/logo.png" alt="GuardCall Logo" width="120" style="border-radius: 24px; margin-bottom: 20px; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);" />
 
   # 🛡️ GuardCall
 
