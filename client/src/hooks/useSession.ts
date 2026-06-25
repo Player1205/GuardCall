@@ -1,28 +1,25 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSocket } from './useSocket';
-import { useSessionStore } from '../store/useSessionStore';
+import { useSessionStore, RiskData, ReportResult } from '../store/useSessionStore';
 import { useAudioCapture } from './useAudioCapture';
 
-export interface RiskData {
-  risk: number;
-  signal: string;
-  coaching: string;
-  peakRiskScore: number;
-}
-
-export interface ReportResult {
-  safe?: boolean;
-  report?: any; // replace with proper report type
-}
+export type { RiskData, ReportResult };
 
 export const useSession = () => {
   const { socket, isConnected } = useSocket();
-  const { callerNumber, sessionActive, setSessionActive, setSessionId } = useSessionStore();
+  const {
+    callerNumber,
+    sessionActive,
+    setSessionActive,
+    setSessionId,
+    transcript,
+    setTranscript,
+    riskData,
+    setRiskData,
+    reportResult,
+    setReportResult,
+  } = useSessionStore();
   const { startRecording, stopRecording, isRecording, permissionError } = useAudioCapture(socket);
-
-  const [transcript, setTranscript] = useState<string>('');
-  const [riskData, setRiskData] = useState<RiskData>({ risk: 0, signal: '', coaching: '', peakRiskScore: 0 });
-  const [reportResult, setReportResult] = useState<ReportResult | null>(null);
 
   useEffect(() => {
     if (!socket) return;
@@ -35,7 +32,7 @@ export const useSession = () => {
       setRiskData(data);
     });
 
-    socket.on('report:ready', (data: { report: any }) => {
+    socket.on('report:ready', (data: ReportResult) => {
       setReportResult(data);
     });
 
@@ -49,7 +46,7 @@ export const useSession = () => {
       socket.off('report:ready');
       socket.off('session:safe');
     };
-  }, [socket]);
+  }, [socket, setTranscript, setRiskData, setReportResult]);
 
   const startSession = useCallback(async () => {
     const newSessionId = crypto.randomUUID();

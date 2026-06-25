@@ -51,8 +51,12 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
   });
 
   socket.on('audio:chunk', (chunk: Buffer) => {
-    if (dgConnection && dgConnection.socket && dgConnection.socket.readyState === 1) {
-      dgConnection.socket.send(chunk);
+    if (dgConnection) {
+      try {
+        dgConnection.sendMedia(chunk);
+      } catch (e: any) {
+        logger.error('Error sending audio chunk to Deepgram', { error: e.message });
+      }
     }
   });
 
@@ -93,7 +97,7 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
     if (riskScoreInterval) clearInterval(riskScoreInterval);
     if (dgConnection) {
       try {
-        dgConnection.socket.close();
+        dgConnection.close();
       } catch (e: any) {
         logger.error('Error closing deepgram:', { error: e.message });
       }

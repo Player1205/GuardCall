@@ -3,14 +3,15 @@ import logger from '../utils/logger.js';
 
 export const setupDeepgram = async (onTranscript: (transcript: string) => void) => {
   try {
-    const deepgram = new DeepgramClient({ apiKey: process.env.DEEPGRAM_API_KEY || '' });
-    
-    // @ts-expect-error Deepgram SDK types are incorrect here and require Authorization
+    const apiKey = process.env.DEEPGRAM_API_KEY || '';
+    const deepgram = new DeepgramClient({ apiKey });
+
     const connection = await deepgram.listen.v1.connect({
       model: 'nova-2',
-      language: 'hi', 
-      smart_format: "true",
-      encoding: 'webm', 
+      language: 'hi',
+      smart_format: 'true',
+      encoding: 'webm',
+      Authorization: `Token ${apiKey}`,
     });
 
     connection.on('open', () => {
@@ -18,16 +19,16 @@ export const setupDeepgram = async (onTranscript: (transcript: string) => void) 
     });
 
     connection.on('message', (data: any) => {
-      if (data.type === "Results") {
-        const transcript = data.channel?.alternatives[0]?.transcript;
+      if (data.type === 'Results') {
+        const transcript = data.channel?.alternatives?.[0]?.transcript;
         if (transcript) {
           onTranscript(transcript);
         }
       }
     });
-      
-    connection.on('error', (err: any) => {
-      logger.error('Deepgram error:', { error: err });
+
+    connection.on('error', (err: Error) => {
+      logger.error('Deepgram error:', { error: err.message });
     });
 
     connection.connect();

@@ -11,6 +11,18 @@ export const useAudioCapture = (socket: Socket | null) => {
 
   const startRecording = useCallback(async () => {
     try {
+      /**
+       * CRITICAL: echoCancellation and noiseSuppression MUST be set to false.
+       *
+       * GuardCall records the user's phone call via the device microphone picking up
+       * both sides of the conversation (the user speaking + the scammer's voice from
+       * the phone speaker). If echoCancellation is enabled, the browser's audio
+       * processing pipeline treats the scammer's voice as "echo" and aggressively
+       * filters it out, making it inaudible to the AI transcription engine.
+       * Similarly, noiseSuppression can strip out the scammer's voice as background
+       * noise. Both MUST remain false so the full conversation reaches the backend
+       * for accurate scam detection.
+       */
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: false,
@@ -35,12 +47,14 @@ export const useAudioCapture = (socket: Socket | null) => {
         }
       };
 
+      // Emit chunks every 250ms for near-real-time streaming
       mediaRecorder.start(250);
       setIsRecording(true);
 
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Microphone access denied.';
       console.error('Error accessing microphone:', err);
-      setPermissionError(err.message || 'Microphone access denied.');
+      setPermissionError(message);
       setHasPermission(false);
     }
   }, [socket]);
