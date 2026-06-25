@@ -1,6 +1,6 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { AlertOctagon, AlertTriangle, Info } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { AlertTriangle, ShieldAlert, X } from 'lucide-react';
 
 interface CoachingCardProps {
   risk: number;
@@ -10,63 +10,85 @@ interface CoachingCardProps {
 }
 
 const CoachingCard: React.FC<CoachingCardProps> = ({ risk, signal, coaching, onDismiss }) => {
-  if (risk < 40) return null;
+  // Determine tier styles
+  let tierStyle = {
+    cardBg: 'bg-warning/10 border-warning/30',
+    headerBg: 'bg-warning',
+    textColor: 'text-warning-light',
+    glow: 'shadow-[0_0_30px_rgba(239,159,39,0.15)]',
+    icon: <AlertTriangle className="w-5 h-5 text-white" />,
+    label: 'CAUTION',
+  };
 
-  let bgColor = 'bg-warning';
-  let labelColor = 'text-warning';
-  let label = 'CAUTION';
-  let Icon = Info;
-
-  if (risk >= 60 && risk < 80) {
-    bgColor = 'bg-orange-500';
-    labelColor = 'text-orange-500';
-    label = 'SUSPICIOUS';
-    Icon = AlertTriangle;
-  } else if (risk >= 80) {
-    bgColor = 'bg-danger';
-    labelColor = 'text-danger';
-    label = 'HIGH RISK';
-    Icon = AlertOctagon;
+  if (risk >= 80) {
+    tierStyle = {
+      cardBg: 'bg-danger/10 border-danger/40',
+      headerBg: 'bg-danger',
+      textColor: 'text-danger-light',
+      glow: 'shadow-[0_0_40px_rgba(226,75,74,0.3)]',
+      icon: <ShieldAlert className="w-5 h-5 text-white" />,
+      label: 'HIGH RISK',
+    };
+  } else if (risk >= 60) {
+    tierStyle = {
+      cardBg: 'bg-orange-500/10 border-orange-500/40',
+      headerBg: 'bg-orange-500',
+      textColor: 'text-orange-300',
+      glow: 'shadow-[0_0_35px_rgba(249,115,22,0.2)]',
+      icon: <AlertTriangle className="w-5 h-5 text-white" />,
+      label: 'SUSPICIOUS',
+    };
   }
 
   return (
-    <AnimatePresence>
-      <motion.div 
-        className="absolute bottom-4 left-4 right-4 z-50"
-        initial={{ y: 50, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 50, opacity: 0 }}
-        transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      >
-        <div className={`p-5 rounded-2xl shadow-2xl border-2 ${bgColor.replace('bg-', 'border-')} bg-background/95 backdrop-blur-md`}>
-          <div className="flex justify-between items-start mb-2">
-            <div className="flex items-center space-x-2">
-              <span className="relative flex h-4 w-4 items-center justify-center">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${bgColor}`}></span>
-                <Icon className={`relative z-10 w-4 h-4 ${labelColor}`} />
-              </span>
-              <span className={`text-sm font-bold tracking-wider ${labelColor}`}>{label}</span>
-            </div>
-            <button onClick={onDismiss} className="text-white/50 hover:text-white transition-colors">✕</button>
-          </div>
-          
-          <p className="text-white/70 text-sm mb-3">
-            <span className="font-semibold text-white">Detected:</span> {signal}
-          </p>
-          
-          <div className="bg-white/10 rounded-lg p-4 border border-white/20">
-            <p className="text-xs text-white/50 mb-1 uppercase tracking-wider font-semibold">Say this exactly:</p>
-            <p className="text-white font-medium text-lg leading-snug">"{coaching}"</p>
-          </div>
-
-          {risk >= 80 && (
-            <div className="mt-3 text-center">
-              <p className="text-danger font-bold uppercase text-sm animate-pulse">You can end this call now</p>
-            </div>
-          )}
+    <motion.div
+      initial={{ opacity: 0, y: 50, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 300, damping: 25 }}
+      className={`absolute bottom-[100px] left-4 right-4 z-50 rounded-2xl overflow-hidden border backdrop-blur-xl ${tierStyle.cardBg} ${tierStyle.glow}`}
+    >
+      {/* Header bar */}
+      <div className={`${tierStyle.headerBg} px-4 py-2 flex items-center justify-between`}>
+        <div className="flex items-center gap-2 font-bold text-white tracking-wide text-sm">
+          {tierStyle.icon}
+          {tierStyle.label}
         </div>
-      </motion.div>
-    </AnimatePresence>
+        <button 
+          onClick={onDismiss}
+          className="p-1 rounded-full hover:bg-white/20 transition-colors"
+        >
+          <X className="w-4 h-4 text-white" />
+        </button>
+      </div>
+
+      <div className="p-4 flex flex-col gap-3">
+        {/* Signal Detected */}
+        <div className="text-sm">
+          <span className="text-white/50 uppercase tracking-wider text-[10px] block mb-1">Detected Pattern</span>
+          <p className="text-white/90 font-medium leading-snug">{signal}</p>
+        </div>
+
+        {/* Coaching Action */}
+        <div className="bg-black/30 rounded-xl p-4 border border-white/5 mt-1">
+          <span className="text-white/50 uppercase tracking-wider text-[10px] block mb-2">Recommended Action</span>
+          <p className="text-white text-lg font-semibold leading-relaxed">
+            "{coaching}"
+          </p>
+        </div>
+
+        {/* Extreme danger warning */}
+        {risk >= 80 && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="mt-2 text-center text-danger-light font-bold text-sm uppercase tracking-widest animate-pulse"
+          >
+            End this call immediately
+          </motion.div>
+        )}
+      </div>
+    </motion.div>
   );
 };
 

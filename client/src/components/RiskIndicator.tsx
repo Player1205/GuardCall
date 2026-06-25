@@ -1,39 +1,90 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { ShieldCheck, ShieldAlert, Shield } from 'lucide-react';
 
 interface RiskIndicatorProps {
   peakRiskScore: number;
   currentRiskScore: number;
 }
 
-const RiskIndicator: React.FC<RiskIndicatorProps> = ({ peakRiskScore }) => {
-  let color = 'bg-primary'; 
-  let text = 'Watching...';
-  let Icon = ShieldCheck;
+const RiskIndicator: React.FC<RiskIndicatorProps> = ({ peakRiskScore, currentRiskScore }) => {
+  const radius = 36;
+  const circumference = 2 * Math.PI * radius;
+  // Risk score max is 100, we map it to 0-100% of the circle (0 dashoffset = full, circumference dashoffset = empty)
+  // Actually we want 75% of a circle to look like a speedometer gauge
+  const gaugeLength = circumference * 0.75;
+  const dashoffset = gaugeLength - (peakRiskScore / 100) * gaugeLength;
 
-  if (peakRiskScore >= 40 && peakRiskScore < 80) {
-    color = 'bg-warning';
-    text = 'Suspicious Patterns Detected';
-    Icon = ShieldAlert;
-  } else if (peakRiskScore >= 80) {
-    color = 'bg-danger';
-    text = 'High Risk Scam Call';
-    Icon = Shield;
-  }
+  const getColor = (score: number) => {
+    if (score >= 80) return '#E24B4A'; // Danger
+    if (score >= 40) return '#EF9F27'; // Warning
+    return '#1D9E75'; // Primary
+  };
+
+  const currentColor = getColor(peakRiskScore);
+  const isHighRisk = currentRiskScore >= 40;
 
   return (
-    <motion.div 
-      className={`w-full ${color} text-white px-4 py-3 flex items-center justify-between text-sm font-medium transition-colors duration-500`}
-      animate={peakRiskScore >= 40 ? { scale: [1, 1.02, 1] } : {}}
-      transition={{ repeat: Infinity, duration: 2 }}
-    >
-      <div className="flex items-center space-x-2">
-        <Icon className="w-5 h-5" />
-        <span>{text}</span>
+    <div className="flex flex-col items-center justify-center p-4 relative">
+      <div className="relative flex items-center justify-center">
+        {/* Background track */}
+        <svg className="w-24 h-24 transform -rotate-[135deg]" viewBox="0 0 100 100">
+          <circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="transparent"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth="8"
+            strokeDasharray={`${gaugeLength} ${circumference}`}
+            strokeLinecap="round"
+          />
+          {/* Animated progress ring */}
+          <motion.circle
+            cx="50"
+            cy="50"
+            r={radius}
+            fill="transparent"
+            stroke={currentColor}
+            strokeWidth="8"
+            strokeDasharray={`${gaugeLength} ${circumference}`}
+            strokeLinecap="round"
+            initial={{ strokeDashoffset: gaugeLength }}
+            animate={{ strokeDashoffset: dashoffset }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            style={{
+              filter: `drop-shadow(0 0 8px ${currentColor}80)`
+            }}
+          />
+        </svg>
+
+        {/* Score Text in Center */}
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <motion.span 
+            key={currentRiskScore}
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="text-2xl font-bold tracking-tighter"
+            style={{ color: currentColor }}
+          >
+            {currentRiskScore}
+          </motion.span>
+          <span className="text-[10px] text-white/50 uppercase tracking-wider mt-[-2px]">Risk</span>
+        </div>
       </div>
-      <span>Risk Score: {peakRiskScore}/100</span>
-    </motion.div>
+
+      {isHighRisk && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-0 right-0"
+        >
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ backgroundColor: currentColor }}></span>
+            <span className="relative inline-flex rounded-full h-3 w-3" style={{ backgroundColor: currentColor }}></span>
+          </span>
+        </motion.div>
+      )}
+    </div>
   );
 };
 
