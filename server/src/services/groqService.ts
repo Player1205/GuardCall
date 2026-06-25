@@ -2,7 +2,11 @@ import Groq from 'groq-sdk';
 import { z } from 'zod';
 import logger from '../utils/logger.js';
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let groqInstance: Groq | null = null;
+const getGroq = () => {
+  if (!groqInstance) groqInstance = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  return groqInstance;
+};
 
 const SCAM_DETECTION_SYSTEM_PROMPT = `You are a real-time scam detection AI for India. 
 Analyze this phone call transcript and detect scam patterns.
@@ -17,6 +21,13 @@ Detect:
 RESPOND ONLY WITH VALID JSON. NO explanation text before or after.
 Format: { "risk": <number 0-100>, "signal": "<brief what you detected>", "coaching": "<exact words for user to say right now>" }
 
+IMPORTANT COACHING STRATEGY: 
+When you detect a scam, do NOT just tell the user to hang up. Instead, provide "offensive coaching" to make the scammer panic, think they called the wrong person, and cut the call themselves. 
+For example:
+- If they claim to be police/CBI/Customs: Tell the user to say "Please provide your official employee ID and department jurisdiction code before we proceed."
+- If they ask for OTP/Money: Tell the user to say "This is a corporate device monitored by the IT department, all network requests are being traced. Who is this?"
+- To generally spook them: Tell the user to say "You've actually called a law enforcement officer's personal number. I am tracing this call's origin right now."
+
 If nothing suspicious, return: { "risk": 0, "signal": "normal conversation", "coaching": "" }`;
 
 const RiskScoreSchema = z.object({
@@ -29,7 +40,7 @@ export type RiskScore = z.infer<typeof RiskScoreSchema>;
 
 export const scoreRisk = async (transcript: string): Promise<RiskScore> => {
   try {
-    const response = await groq.chat.completions.create({
+    const response = await getGroq().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: SCAM_DETECTION_SYSTEM_PROMPT },
@@ -50,7 +61,7 @@ export const scoreRisk = async (transcript: string): Promise<RiskScore> => {
 
 export const scrubPII = async (transcript: string): Promise<string> => {
   try {
-    const response = await groq.chat.completions.create({
+    const response = await getGroq().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: `Redact PII from this transcript. Replace: Aadhaar numbers with [AADHAAR], bank accounts with [ACCOUNT], addresses with [ADDRESS], full names of the victim with [NAME], phone numbers other than the scammer's with [PHONE]. Keep all scammer statements intact. Return ONLY the redacted transcript text, nothing else.` },
@@ -83,7 +94,7 @@ export type GeneratedReport = z.infer<typeof ReportSchema>;
 
 export const generateReport = async (transcript: string, peakRiskScore: number, callerNumber: string, callDuration: string): Promise<GeneratedReport | null> => {
   try {
-    const response = await groq.chat.completions.create({
+    const response = await getGroq().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: `You are a fraud incident report generator for India. Generate a structured report from this scam call transcript. RESPOND ONLY WITH VALID JSON in this exact format:
