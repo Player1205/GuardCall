@@ -1,7 +1,7 @@
 import mongoose, { Document, Model } from 'mongoose';
 
 export interface ICallSession extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   sessionId: string;
   callerNumber: string;
   transcript: string;
@@ -13,7 +13,7 @@ export interface ICallSession extends Document {
 }
 
 const callSessionSchema = new mongoose.Schema<ICallSession>({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: String, required: true },
   sessionId: { type: String, required: true, unique: true },
   callerNumber: { type: String, required: true },
   transcript: { type: String, default: '' },

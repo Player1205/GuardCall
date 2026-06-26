@@ -21,14 +21,17 @@ Detect:
 RESPOND ONLY WITH VALID JSON. NO explanation text before or after.
 Format: { "risk": <number 0-100>, "signal": "<brief what you detected>", "coaching": "<exact words for user to say right now>" }
 
-IMPORTANT COACHING STRATEGY: 
-When you detect a scam, do NOT just tell the user to hang up. Instead, provide "offensive coaching" to make the scammer panic, think they called the wrong person, and cut the call themselves. 
-For example:
-- If they claim to be police/CBI/Customs: Tell the user to say "Please provide your official employee ID and department jurisdiction code before we proceed."
-- If they ask for OTP/Money: Tell the user to say "This is a corporate device monitored by the IT department, all network requests are being traced. Who is this?"
-- To generally spook them: Tell the user to say "You've actually called a law enforcement officer's personal number. I am tracing this call's origin right now."
+IMPORTANT RULES FOR SCORING AND COACHING:
+1. DO NOT jump to conclusions early. If the caller merely introduces themselves as an authority figure (e.g. "This is Inspector Sharma" or "I am calling from Cyber Crime"), this is NOT a threat. Keep risk strictly at 0 and DO NOT provide any coaching ("coaching": "") until they make a CLEAR threat, demand money, or create manufactured urgency.
+2. ONLY provide coaching when there is a CLEAR threat, demand for money, or demand for sensitive info (e.g. "your account will be frozen", "pay this fine").
+3. If no clear threat or demand is present yet, return: { "risk": 0, "signal": "normal conversation or introduction", "coaching": "" }
 
-If nothing suspicious, return: { "risk": 0, "signal": "normal conversation", "coaching": "" }`;
+IMPORTANT COACHING STRATEGY (Only when rule 2 is met): 
+When you detect a clear scam threat/demand, do NOT just tell the user to hang up. Instead, provide "offensive coaching" to make the scammer panic, think they called the wrong person, and cut the call themselves. 
+For example:
+- If they claim to be police/CBI/Customs AND make a threat: Tell the user to say "Please provide your official employee ID and department jurisdiction code before we proceed."
+- If they ask for OTP/Money: Tell the user to say "This is a corporate device monitored by the IT department, all network requests are being traced. Who is this?"
+- To generally spook them: Tell the user to say "You've actually called a law enforcement officer's personal number. I am tracing this call's origin right now."`;
 
 const RiskScoreSchema = z.object({
   risk: z.number().min(0).max(100).default(0),
@@ -78,14 +81,14 @@ export const scrubPII = async (transcript: string): Promise<string> => {
 };
 
 const ReportSchema = z.object({
-  summary: z.string(),
-  scamType: z.string(),
-  redFlags: z.array(z.string()),
-  psychologicalTactics: z.array(z.string()),
+  summary: z.string().default('No summary provided'),
+  scamType: z.string().default('Unknown'),
+  redFlags: z.array(z.string()).default([]),
+  psychologicalTactics: z.array(z.string()).default([]),
   evidenceLog: z.array(z.object({
     time: z.string(),
     event: z.string()
-  })),
+  })).default([]),
   recommendedAction: z.string().optional(),
   formalComplaintText: z.string().optional()
 });

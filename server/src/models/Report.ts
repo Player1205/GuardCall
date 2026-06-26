@@ -6,7 +6,7 @@ export interface IEvidenceLog {
 }
 
 export interface IReport extends Document {
-  userId: mongoose.Types.ObjectId;
+  userId: string;
   sessionId: string;
   callerNumber: string;
   summary: string;
@@ -22,7 +22,7 @@ export interface IReport extends Document {
 }
 
 const reportSchema = new mongoose.Schema<IReport>({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  userId: { type: String, required: true },
   sessionId: { type: String, required: true },
   callerNumber: { type: String, required: true },
   summary: { type: String, required: true },
