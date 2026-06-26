@@ -16,7 +16,7 @@ import logger from './utils/logger.js';
 
 dotenv.config();
 
-const app: Express = express();
+export const app: Express = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -57,10 +57,12 @@ io.on('connection', (socket: Socket) => {
 const PORT = process.env.PORT || 3001;
 
 // Connect to DB and start server
-connectDB().then(() => {
-  server.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
+if (process.env.NODE_ENV !== 'test') {
+  connectDB().then(() => {
+    server.listen(PORT, () => {
+      logger.info(`Server running on port ${PORT}`);
+    });
+  }).catch((err: any) => {
+    logger.error('Failed to connect to database', { error: err.message });
   });
-}).catch((err: any) => {
-  logger.error('Failed to connect to database', { error: err.message });
-});
+}
