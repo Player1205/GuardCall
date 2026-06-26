@@ -18,11 +18,22 @@ const CallSession: React.FC = () => {
   const [cardDismissedId, setCardDismissedId] = useState<string | null>(null);
   const [seconds, setSeconds] = useState(0);
 
-  // Start session on mount
+  const callbacksRef = React.useRef({ startSession, endSession });
   useEffect(() => {
-    startSession();
-    return () => endSession();
+    callbacksRef.current = { startSession, endSession };
   }, [startSession, endSession]);
+
+  // Start session only when socket connects
+  useEffect(() => {
+    if (isConnected) {
+      callbacksRef.current.startSession();
+    }
+    return () => {
+      if (isConnected) {
+        callbacksRef.current.endSession();
+      }
+    };
+  }, [isConnected]);
 
   // Handle navigation when session ends
   useEffect(() => {

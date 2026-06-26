@@ -51,6 +51,9 @@ export const useSession = () => {
   const startSession = useCallback(async () => {
     const newSessionId = crypto.randomUUID();
     setSessionId(newSessionId);
+    setReportResult(null);
+    setTranscript('');
+    setRiskData({ risk: 0, signal: '', coaching: '', peakRiskScore: 0 });
     
     const userId = "anonymous-or-logged-in-user-id"; 
     
@@ -59,7 +62,7 @@ export const useSession = () => {
     }
     await startRecording();
     setSessionActive(true);
-  }, [socket, callerNumber, setSessionId, setSessionActive, startRecording]);
+  }, [socket, callerNumber, setSessionId, setSessionActive, startRecording, setReportResult, setTranscript, setRiskData]);
 
   const endSession = useCallback(() => {
     stopRecording();
