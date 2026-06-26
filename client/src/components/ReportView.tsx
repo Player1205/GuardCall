@@ -3,12 +3,14 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, Variants } from 'framer-motion';
 import { ShieldAlert, FileDown, ExternalLink, Users, AlertTriangle, Hash, Activity, Home, Copy, CheckCircle } from 'lucide-react';
 import { generatePDFReport, ReportData } from '../services/reportPDF';
+import { reportToCommunityDB } from '../services/api';
 
 const ReportView: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const report = location.state?.report as ReportData;
   const [copied, setCopied] = React.useState(false);
+  const [isReporting, setIsReporting] = React.useState(false);
 
   if (!report) {
     return (
@@ -36,6 +38,16 @@ const ReportView: React.FC = () => {
     navigator.clipboard.writeText(report.formalComplaintText);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadAndReport = async () => {
+    setIsReporting(true);
+    // Report to community DB
+    await reportToCommunityDB(report.callerNumber, report.peakRiskScore);
+    // Generate PDF
+    generatePDFReport(report);
+    // Remove loading state after a brief delay
+    setTimeout(() => setIsReporting(false), 1500);
   };
 
   return (
@@ -119,26 +131,30 @@ const ReportView: React.FC = () => {
         {/* Action Buttons */}
         <motion.div variants={itemVariants} className="pt-8 space-y-3 pb-8">
           <button 
-            onClick={() => generatePDFReport(report)}
-            className="w-full py-3.5 px-4 bg-gradient-to-r from-primary to-primary-light hover:from-primary-light hover:to-primary text-white rounded-xl font-bold shadow-[0_0_20px_rgba(29,158,117,0.3)] transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+            onClick={handleDownloadAndReport}
+            disabled={isReporting}
+            className={`w-full py-3.5 px-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 active:scale-[0.98] ${
+              isReporting 
+                ? 'bg-primary-light text-white shadow-[0_0_20px_rgba(29,158,117,0.5)]' 
+                : 'bg-gradient-to-r from-primary to-primary-light hover:from-primary-light hover:to-primary text-white shadow-[0_0_20px_rgba(29,158,117,0.3)]'
+            }`}
           >
-            <FileDown className="w-5 h-5" />
-            Download PDF Report
+            {isReporting ? <CheckCircle className="w-5 h-5" /> : <FileDown className="w-5 h-5" />}
+            {isReporting ? 'Saved & Flagged in Community DB!' : 'Download PDF Report'}
           </button>
           
           <button 
-            onClick={() => window.open('https://sancharsaathi.gov.in', '_blank')}
+            onClick={() => {
+              handleCopyFIR();
+              // Small delay to let user see the copy success before switching tabs
+              setTimeout(() => {
+                window.open('https://sancharsaathi.gov.in/sfc/Home/sfc-complaint.jsp', '_blank');
+              }, 400);
+            }}
             className="w-full py-3.5 px-4 bg-transparent border border-white/20 hover:border-white/40 hover:bg-white/5 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
           >
             <ExternalLink className="w-5 h-5 text-white/60" />
-            Report to Sanchar Saathi
-          </button>
-
-          <button 
-            className="w-full py-3.5 px-4 bg-white/5 hover:bg-white/10 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 active:scale-[0.98] mt-2"
-          >
-            <Users className="w-5 h-5 text-white/60" />
-            Submit to Community Database
+            {copied ? 'Copied Details & Opening Portal...' : 'Report to Sanchar Saathi (Chakshu)'}
           </button>
         </motion.div>
         

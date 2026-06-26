@@ -24,7 +24,7 @@ router.get('/check/:number', async (req: Request, res: Response, next: NextFunct
   }
 });
 
-router.post('/', protect, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { callerNumber, riskScore } = req.body;
     

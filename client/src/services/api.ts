@@ -24,4 +24,12 @@ export const checkCommunityDB = async (number: string): Promise<CommunityCheckRe
   }
 };
 
+export const reportToCommunityDB = async (callerNumber: string, riskScore: number): Promise<void> => {
+  try {
+    await api.post('/community', { callerNumber, riskScore });
+  } catch (error) {
+    console.error('Error reporting to community DB', error);
+  }
+};
+
 export default api;

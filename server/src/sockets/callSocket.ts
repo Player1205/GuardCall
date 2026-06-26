@@ -123,25 +123,28 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
 
   socket.on('session:end', async () => {
     logger.info('Session ended');
+    
+    // Save a reference to sessionData before cleanup clears it
+    const activeSessionData = sessionData;
     cleanup();
 
-    if (!sessionData) return;
-    sessionData.peakRiskScore = peakRiskScore;
+    if (!activeSessionData) return;
+    activeSessionData.peakRiskScore = peakRiskScore;
 
     try {
       if (peakRiskScore < 40) {
-        await handleSessionEnd(sessionData, null);
+        await handleSessionEnd(activeSessionData, null);
         socket.emit('session:safe');
       } else {
         const scrubbedTranscript = await scrubPII(rollingTranscript);
         const reportContent = await generateReport(
           scrubbedTranscript,
           peakRiskScore,
-          sessionData.callerNumber,
+          activeSessionData.callerNumber,
           "Unknown"
         );
 
-        const savedReport = await handleSessionEnd(sessionData, reportContent);
+        const savedReport = await handleSessionEnd(activeSessionData, reportContent);
 
         socket.emit('report:ready', {
           requiresConfirmation: peakRiskScore < 70,
