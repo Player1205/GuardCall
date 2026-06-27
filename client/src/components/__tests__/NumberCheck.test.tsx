@@ -51,6 +51,20 @@ describe('NumberCheck', () => {
     expect(screen.getByRole('button', { name: /Check & Protect/i })).not.toBeDisabled();
   });
 
+  it('formats the phone number correctly as the user types', () => {
+    const setCallerNumberMock = vi.fn();
+    renderComponent('', setCallerNumberMock);
+    const input = screen.getByPlaceholderText('+91 98765 43210');
+    
+    // Standard 10-digit
+    fireEvent.change(input, { target: { value: '9876543210' } });
+    expect(setCallerNumberMock).toHaveBeenCalledWith('98765 43210');
+    
+    // +91 Country Code
+    fireEvent.change(input, { target: { value: '+919876543210' } });
+    expect(setCallerNumberMock).toHaveBeenCalledWith('+91 98765 43210');
+  });
+
   it('navigates to /consent if number is safe', async () => {
     (api.checkCommunityDB as any).mockResolvedValue({ flagged: false, reportsCount: 0 });
     renderComponent('9876543210');
