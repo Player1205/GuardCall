@@ -12,7 +12,7 @@ router.get('/:sessionId', protect, async (req: AuthRequest, res: Response, next:
     }
     const report = await Report.findOne({ 
       sessionId: req.params.sessionId,
-      userId: req.user._id 
+      userId: req.user._id.toString()
     });
     
     if (report) {
@@ -33,7 +33,7 @@ router.post('/', protect, async (req: AuthRequest, res: Response, next: NextFunc
       throw new Error('Not authorized');
     }
     const reportData = req.body;
-    reportData.userId = req.user._id;
+    reportData.userId = req.user._id.toString();
     
     const report = await Report.create(reportData);
     res.status(201).json(report);

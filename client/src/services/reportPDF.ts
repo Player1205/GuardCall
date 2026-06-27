@@ -1,10 +1,8 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
-import { UserOptions } from 'jspdf-autotable';
+import autoTable, { UserOptions } from 'jspdf-autotable';
 
 // Fix TS type for autoTable since it's a plugin
 interface jsPDFWithPlugin extends jsPDF {
-  autoTable: (options: UserOptions) => void;
   lastAutoTable: { finalY: number };
 }
 
@@ -42,7 +40,7 @@ export const generatePDFReport = (reportData: ReportData) => {
   doc.text("Complaint / Incident Details", 14, currentY);
   currentY += 5;
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: currentY,
     theme: 'grid',
     styles: { fontSize: 10, cellPadding: 3, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.1 },
@@ -60,7 +58,7 @@ export const generatePDFReport = (reportData: ReportData) => {
     ],
   });
 
-  currentY = doc.lastAutoTable.finalY + 10;
+  currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 10 : currentY + 40;
 
   // Red Flags Detected Table
   doc.setFont("helvetica", "bold");
@@ -68,7 +66,7 @@ export const generatePDFReport = (reportData: ReportData) => {
   doc.text("Detected Red Flags / Manipulation Tactics", 14, currentY);
   currentY += 5;
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: currentY,
     theme: 'grid',
     styles: { fontSize: 10, cellPadding: 3, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.1 },
@@ -81,7 +79,7 @@ export const generatePDFReport = (reportData: ReportData) => {
     body: reportData.redFlags.map((flag, index) => [`${index + 1}`, flag]),
   });
 
-  currentY = doc.lastAutoTable.finalY + 15;
+  currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 15 : currentY + 15;
 
   // Incident Summary
   doc.setFont("helvetica", "bold");
@@ -91,7 +89,7 @@ export const generatePDFReport = (reportData: ReportData) => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   
-  const summaryLines = doc.splitTextToSize(reportData.summary, pageWidth - 28);
+  const summaryLines = doc.splitTextToSize(reportData.summary || 'No summary available.', pageWidth - 28);
   doc.text(summaryLines, 14, currentY);
   currentY += (summaryLines.length * 5) + 10;
 
@@ -110,7 +108,7 @@ export const generatePDFReport = (reportData: ReportData) => {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   
-  const complaintLines = doc.splitTextToSize(reportData.formalComplaintText, pageWidth - 28);
+  const complaintLines = doc.splitTextToSize(reportData.formalComplaintText || 'No complaint text generated.', pageWidth - 28);
   
   let remainingLines = [...complaintLines];
   while (remainingLines.length > 0) {

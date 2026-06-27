@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, Variants } from 'framer-motion';
-import { ShieldAlert, FileDown, ExternalLink, Users, AlertTriangle, Hash, Activity, Home, Copy, CheckCircle } from 'lucide-react';
+import { ShieldAlert, FileDown, ExternalLink, AlertTriangle, Hash, Activity, Home, Copy, CheckCircle } from 'lucide-react';
 import { generatePDFReport, ReportData } from '../services/reportPDF';
 import { reportToCommunityDB } from '../services/api';
 
@@ -42,10 +42,14 @@ const ReportView: React.FC = () => {
 
   const handleDownloadAndReport = async () => {
     setIsReporting(true);
+    // Generate PDF FIRST so the browser doesn't block the download due to async delay
+    try {
+      generatePDFReport(report);
+    } catch (err) {
+      console.error('Error generating PDF:', err);
+    }
     // Report to community DB
     await reportToCommunityDB(report.callerNumber, report.peakRiskScore);
-    // Generate PDF
-    generatePDFReport(report);
     // Remove loading state after a brief delay
     setTimeout(() => setIsReporting(false), 1500);
   };

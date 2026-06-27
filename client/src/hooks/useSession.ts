@@ -19,7 +19,7 @@ export const useSession = () => {
     reportResult,
     setReportResult,
   } = useSessionStore();
-  const { startRecording, stopRecording, isRecording, permissionError } = useAudioCapture(socket);
+  const { startRecording, stopRecording, isRecording, permissionError } = useAudioCapture(socket, setTranscript);
 
   useEffect(() => {
     if (!socket) return;

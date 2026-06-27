@@ -20,7 +20,7 @@ const TranscriptFeed: React.FC<TranscriptFeedProps> = ({ transcript }) => {
   const phrases = transcript.split(/(?<=[.!?])\s+/).filter(p => p.trim().length > 0);
 
   return (
-    <div className="relative flex-1 mx-4 my-2 mb-24 rounded-2xl overflow-hidden glass-card shadow-lg flex flex-col">
+    <div className="relative flex-1 min-h-0 mx-4 my-2 mb-24 rounded-2xl overflow-hidden glass-card shadow-lg flex flex-col">
       {/* Top subtle gradient fade so text disappears smoothly */}
       <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-background/90 to-transparent z-10 pointer-events-none" />
       

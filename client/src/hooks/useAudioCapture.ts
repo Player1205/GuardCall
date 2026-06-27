@@ -1,16 +1,17 @@
 import { useState, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
+import { DeepgramClient } from '@deepgram/sdk';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-export const useAudioCapture = (socket: Socket | null) => {
+export const useAudioCapture = (socket: Socket | null, setTranscript: (transcript: string) => void) => {
   const [isRecording, setIsRecording] = useState<boolean>(false);
   const [hasPermission, setHasPermission] = useState<boolean>(false);
   const [permissionError, setPermissionError] = useState<string | null>(null);
   
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const dgSocketRef = useRef<WebSocket | null>(null);
+  const dgSocketRef = useRef<any>(null);
   const transcriptRef = useRef<string>('');
 
   const startRecording = useCallback(async () => {
@@ -33,12 +34,21 @@ export const useAudioCapture = (socket: Socket | null) => {
       setPermissionError(null);
       transcriptRef.current = '';
 
-      // Connect directly to Deepgram WebSocket
-      const dgSocket = new WebSocket('wss://api.deepgram.com/v1/listen?model=nova-2&language=hi&smart_format=true&interim_results=true&vad_events=true', ['token', data.token]);
+      // Initialize v5 SDK Client with the temporary token
+      const dgClient = new DeepgramClient({ accessToken: data.token });
       
-      dgSocketRef.current = dgSocket;
+      // The connect method sets up the WebSocket connection configuration
+      const dgConnection = await dgClient.listen.v1.connect({
+        model: 'nova-2',
+        language: 'hi',
+        smart_format: 'true',
+        interim_results: 'true',
+        vad_events: 'true'
+      });
+      
+      dgSocketRef.current = dgConnection as any;
 
-      dgSocket.onopen = () => {
+      dgConnection.on('open', () => {
         const mediaRecorder = new MediaRecorder(stream, { 
           mimeType: 'audio/webm;codecs=opus' 
         });
@@ -46,19 +56,18 @@ export const useAudioCapture = (socket: Socket | null) => {
         mediaRecorderRef.current = mediaRecorder;
 
         mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0 && dgSocket.readyState === WebSocket.OPEN) {
-            dgSocket.send(event.data);
+          if (event.data.size > 0 && dgConnection.readyState === 1) { // 1 = OPEN
+            dgConnection.sendMedia(event.data);
           }
         };
 
         // Emit chunks every 250ms for near-real-time streaming
         mediaRecorder.start(250);
         setIsRecording(true);
-      };
+      });
 
-      dgSocket.onmessage = (message) => {
-        const received = JSON.parse(message.data);
-        if (received.type === 'Results') {
+      dgConnection.on('message', (received: any) => {
+        if (received.type === 'Results' && received.channel?.alternatives?.[0]) {
           const transcript = received.channel.alternatives[0].transcript;
           if (transcript && received.is_final) {
             transcriptRef.current += transcript + ' ';
@@ -73,13 +82,20 @@ export const useAudioCapture = (socket: Socket | null) => {
             if (socket) {
               socket.emit('transcript:update', transcriptRef.current);
             }
+            // Update UI locally
+            setTranscript(transcriptRef.current);
+          } else if (transcript) {
+            // Show interim results on screen without emitting to backend
+            setTranscript(transcriptRef.current + transcript);
           }
         }
-      };
+      });
 
-      dgSocket.onerror = (error) => {
+      dgConnection.on('error', (error: any) => {
         console.error('Deepgram WebSocket Error', error);
-      };
+      });
+
+      dgConnection.connect();
 
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Microphone access denied.';
@@ -101,11 +117,12 @@ export const useAudioCapture = (socket: Socket | null) => {
     }
 
     if (dgSocketRef.current) {
-      // Send a close frame before closing connection
-      if (dgSocketRef.current.readyState === WebSocket.OPEN) {
-        dgSocketRef.current.send(JSON.stringify({ type: 'CloseStream' }));
+      if (typeof dgSocketRef.current.sendCloseStream === 'function') {
+        dgSocketRef.current.sendCloseStream({ type: 'CloseStream' });
       }
-      dgSocketRef.current.close();
+      if (dgSocketRef.current.close) {
+        dgSocketRef.current.close();
+      }
       dgSocketRef.current = null;
     }
   }, []);

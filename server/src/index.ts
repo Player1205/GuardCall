@@ -1,9 +1,13 @@
 import express, { Express } from 'express';
 import http from 'http';
+import dns from 'dns';
 import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
+
+// Fix for Node.js >17 undici fetch ENOTFOUND issues with IPv6
+dns.setDefaultResultOrder('ipv4first');
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
 import { setupCallSocket } from './sockets/callSocket.js';

@@ -12,7 +12,7 @@ router.post('/', protect, async (req: AuthRequest, res: Response, next: NextFunc
     }
     const { sessionId, callerNumber } = req.body;
     const session = await CallSession.create({
-      userId: req.user._id,
+      userId: req.user._id.toString(),
       sessionId,
       callerNumber
     });
@@ -30,7 +30,7 @@ router.get('/:sessionId', protect, async (req: AuthRequest, res: Response, next:
     }
     const session = await CallSession.findOne({ 
       sessionId: req.params.sessionId,
-      userId: req.user._id 
+      userId: req.user._id.toString()
     });
     
     if (session) {

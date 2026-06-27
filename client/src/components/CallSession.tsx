@@ -89,7 +89,7 @@ const CallSession: React.FC = () => {
   const showCard = riskData.risk >= 40 && riskData.signal !== cardDismissedId;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative max-w-lg mx-auto overflow-hidden">
+    <div className="h-[100dvh] bg-background flex flex-col relative max-w-lg mx-auto overflow-hidden">
       {/* Animated background element */}
       <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[40%] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
       {riskData.risk >= 80 && (
