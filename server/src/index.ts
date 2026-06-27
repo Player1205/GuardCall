@@ -11,6 +11,7 @@ import authRoutes from './routes/auth.js';
 import sessionRoutes from './routes/sessions.js';
 import reportRoutes from './routes/reports.js';
 import communityRoutes from './routes/community.js';
+import deepgramRoutes from './routes/deepgram.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import logger from './utils/logger.js';
 
@@ -44,6 +45,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/sessions', sessionRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/community', communityRoutes);
+app.use('/api/deepgram', deepgramRoutes);
 
 // Error Handler
 app.use(errorHandler);

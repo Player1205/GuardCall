@@ -1,5 +1,4 @@
 import { Socket, Server } from 'socket.io';
-import { setupDeepgram } from '../services/deepgramService.js';
 import { scoreRisk, generateReport, scrubPII } from '../services/groqService.js';
 import { handleSessionEnd } from '../services/reportService.js';
 import logger from '../utils/logger.js';
@@ -15,108 +14,44 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
   let rollingTranscript = '';
   let peakRiskScore = 0;
   let sessionData: SessionData | null = null;
-  let riskScoreInterval: NodeJS.Timeout | null = null;
-  let dgConnection: any = null;
-  let dgReady = false;
-  let pendingChunks: Buffer[] = [];
+  let lastScoreTime = 0;
+  let isScoring = false;
 
-  socket.on('session:start', async ({ callerNumber, sessionId, userId }) => {
+  socket.on('session:start', ({ callerNumber, sessionId, userId }) => {
     logger.info(`Session started: ${sessionId}`);
 
-    // Clean up any previous session before starting a new one
     cleanup();
 
-    let isAborted = false;
-    
-    // Store the cleanup flag on the socket or a local function so cleanup can access it
-    const currentCleanup = () => {
-      isAborted = true;
-    };
-    
-    // We need to attach this specific session's cleanup to the socket's general cleanup
-    // We can just use the outer variable, but wait, the socket has multiple events.
-    // Let's just track the active session ID.
-    const currentSessionId = sessionId;
     sessionData = { callerNumber, sessionId, userId, peakRiskScore: 0 };
     rollingTranscript = '';
     peakRiskScore = 0;
-    dgReady = false;
-    pendingChunks = [];
-
-    try {
-      const conn = await setupDeepgram((transcriptChunk: string) => {
-        // Only process if this is still the active session
-        if (sessionData?.sessionId !== currentSessionId) return;
-        
-        rollingTranscript += transcriptChunk + ' ';
-
-        const words = rollingTranscript.split(' ');
-        if (words.length > 400) {
-          rollingTranscript = words.slice(words.length - 400).join(' ');
-        }
-
-        socket.emit('transcript:update', rollingTranscript);
-      });
-
-      // If the session was cleared or changed while we were waiting for setupDeepgram, abort
-      if (!sessionData || sessionData.sessionId !== currentSessionId) {
-        if (conn) {
-           try { conn.close(); } catch (e) {}
-        }
-        return;
-      }
-
-      if (conn) {
-        dgConnection = conn;
-        dgReady = true;
-
-        // Flush any audio chunks that arrived while we were connecting
-        for (const chunk of pendingChunks) {
-          try {
-            dgConnection.sendMedia(chunk);
-          } catch (e: any) {
-            logger.error('Error flushing buffered audio chunk', { error: e.message });
-          }
-        }
-        pendingChunks = [];
-        logger.info('Deepgram connection ready, buffered chunks flushed');
-      } else {
-        logger.error('Deepgram setup returned null — transcription will be unavailable for this session');
-        socket.emit('error:deepgram', { message: 'Speech-to-text service is unavailable. Please try again.' });
-      }
-    } catch (error: any) {
-      logger.error('Error during Deepgram setup in session:start', { error: error.message });
-      socket.emit('error:deepgram', { message: 'Speech-to-text service encountered an error.' });
-    }
-
-    riskScoreInterval = setInterval(async () => {
-      if (rollingTranscript.trim().length > 10) {
-        try {
-          const { risk, signal, coaching } = await scoreRisk(rollingTranscript);
-
-          if (risk > peakRiskScore) {
-            peakRiskScore = risk;
-          }
-
-          socket.emit('risk:update', { risk, signal, coaching, peakRiskScore });
-        } catch (e: any) {
-          logger.error('Error scoring risk', { error: e.message });
-        }
-      }
-    }, 10000);
+    lastScoreTime = 0;
+    isScoring = false;
   });
 
-  socket.on('audio:chunk', (chunk: Buffer) => {
-    if (dgReady && dgConnection) {
+  socket.on('transcript:update', async (newTranscript: string) => {
+    if (!sessionData) return;
+    
+    rollingTranscript = newTranscript;
+
+    // Debounce: Only score if not currently scoring AND at least 2.5s have passed
+    const now = Date.now();
+    if (rollingTranscript.trim().length > 10 && !isScoring && (now - lastScoreTime > 2500)) {
+      isScoring = true;
+      lastScoreTime = now;
+      
       try {
-        dgConnection.sendMedia(chunk);
+        const { risk, signal, coaching } = await scoreRisk(rollingTranscript);
+
+        if (risk > peakRiskScore) {
+          peakRiskScore = risk;
+        }
+
+        socket.emit('risk:update', { risk, signal, coaching, peakRiskScore });
       } catch (e: any) {
-        logger.error('Error sending audio chunk to Deepgram', { error: e.message });
-      }
-    } else {
-      // Buffer chunks until Deepgram is ready (max 40 chunks ≈ 10s at 250ms intervals)
-      if (pendingChunks.length < 40) {
-        pendingChunks.push(chunk);
+        logger.error('Error scoring risk', { error: e.message });
+      } finally {
+        isScoring = false;
       }
     }
   });
@@ -162,20 +97,7 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
   });
 
   function cleanup() {
-    if (riskScoreInterval) {
-      clearInterval(riskScoreInterval);
-      riskScoreInterval = null;
-    }
-    if (dgConnection) {
-      try {
-        dgConnection.close();
-      } catch (e: any) {
-        logger.error('Error closing Deepgram connection', { error: e.message });
-      }
-      dgConnection = null;
-    }
-    dgReady = false;
-    pendingChunks = [];
     sessionData = null;
+    isScoring = false;
   }
 };
