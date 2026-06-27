@@ -1,4 +1,12 @@
 import jsPDF from 'jspdf';
+import 'jspdf-autotable';
+import { UserOptions } from 'jspdf-autotable';
+
+// Fix TS type for autoTable since it's a plugin
+interface jsPDFWithPlugin extends jsPDF {
+  autoTable: (options: UserOptions) => void;
+  lastAutoTable: { finalY: number };
+}
 
 export interface ReportData {
   callerNumber: string;
@@ -11,71 +19,103 @@ export interface ReportData {
 }
 
 export const generatePDFReport = (reportData: ReportData) => {
-  const doc = new jsPDF();
+  const doc = new jsPDF() as jsPDFWithPlugin;
   
-  const getLineHeightMM = () => {
-    // getLineHeight() returns points. Convert to mm.
-    return doc.getLineHeight() * 25.4 / 72;
-  };
-
-  const checkPageBreak = (neededSpace: number, currentY: number) => {
-    if (currentY + neededSpace > 280) {
-      doc.addPage();
-      return 20;
-    }
-    return currentY;
-  };
-
+  // Page setup
+  const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
+
+  // Header Title
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(18);
+  doc.text("CYBER CRIME INCIDENT REPORT", pageWidth / 2, currentY, { align: "center" });
   
-  doc.setFontSize(20);
-  doc.setTextColor(29, 158, 117);
-  doc.text('GuardCall Incident Report', 20, currentY);
-  currentY += 12;
-  
-  doc.setFontSize(12);
-  doc.setTextColor(0, 0, 0);
-  doc.text(`Date: ${new Date(reportData.createdAt || Date.now()).toLocaleString()}`, 20, currentY);
-  currentY += 8;
-  doc.text(`Caller Number: ${reportData.callerNumber}`, 20, currentY);
-  currentY += 8;
-  doc.text(`Scam Type: ${reportData.scamType}`, 20, currentY);
-  currentY += 14;
-  
-  doc.setFontSize(14);
-  doc.text('Summary:', 20, currentY);
-  currentY += 6;
+  // Underline for title
+  const textWidth = doc.getTextWidth("CYBER CRIME INCIDENT REPORT");
+  doc.setLineWidth(0.5);
+  doc.line((pageWidth - textWidth) / 2, currentY + 2, (pageWidth + textWidth) / 2, currentY + 2);
+  currentY += 15;
+
+  // Incident Overview Table
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  const summaryLines = doc.splitTextToSize(reportData.summary, 170);
-  currentY = checkPageBreak(summaryLines.length * getLineHeightMM(), currentY);
-  doc.text(summaryLines, 20, currentY);
-  currentY += (summaryLines.length * getLineHeightMM()) + 10;
-  
-  currentY = checkPageBreak(20, currentY);
-  doc.setFontSize(14);
-  doc.text('Red Flags Detected:', 20, currentY);
-  currentY += 6;
-  doc.setFontSize(11);
-  reportData.redFlags.forEach(flag => {
-    const flagLines = doc.splitTextToSize(`• ${flag}`, 165);
-    currentY = checkPageBreak(flagLines.length * getLineHeightMM(), currentY);
-    doc.text(flagLines, 25, currentY);
-    currentY += (flagLines.length * getLineHeightMM()) + 4;
+  doc.text("Complaint / Incident Details", 14, currentY);
+  currentY += 5;
+
+  doc.autoTable({
+    startY: currentY,
+    theme: 'grid',
+    styles: { fontSize: 10, cellPadding: 3, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.1 },
+    headStyles: { fillColor: [240, 240, 240], fontStyle: 'bold', textColor: [0, 0, 0] },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 70 },
+      1: { cellWidth: 'auto' }
+    },
+    body: [
+      ['Date Reported', new Date(reportData.createdAt || Date.now()).toLocaleString()],
+      ['Suspect Caller Number', reportData.callerNumber],
+      ['Category of complaint', 'Online Financial Fraud / Scams'],
+      ['Sub-Category of complaint', reportData.scamType],
+      ['AI Risk Assessment Score', `${reportData.peakRiskScore}/100`],
+    ],
   });
-  
-  currentY += 6;
-  currentY = checkPageBreak(20, currentY);
-  doc.setFontSize(14);
-  doc.text('Formal Complaint Text (For Police FIR):', 20, currentY);
-  currentY += 6;
+
+  currentY = doc.lastAutoTable.finalY + 10;
+
+  // Red Flags Detected Table
+  doc.setFont("helvetica", "bold");
   doc.setFontSize(11);
-  const complaintLines = doc.splitTextToSize(reportData.formalComplaintText, 170);
+  doc.text("Detected Red Flags / Manipulation Tactics", 14, currentY);
+  currentY += 5;
+
+  doc.autoTable({
+    startY: currentY,
+    theme: 'grid',
+    styles: { fontSize: 10, cellPadding: 3, textColor: [0, 0, 0], lineColor: [0, 0, 0], lineWidth: 0.1 },
+    head: [['#', 'Red Flag Description']],
+    headStyles: { fillColor: [240, 240, 240], fontStyle: 'bold', textColor: [0, 0, 0] },
+    columnStyles: {
+      0: { fontStyle: 'bold', cellWidth: 15 },
+      1: { cellWidth: 'auto' }
+    },
+    body: reportData.redFlags.map((flag, index) => [`${index + 1}`, flag]),
+  });
+
+  currentY = doc.lastAutoTable.finalY + 15;
+
+  // Incident Summary
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Incident Summary", 14, currentY);
+  currentY += 6;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
   
-  // We might need to split complaintLines across pages if it's very long
+  const summaryLines = doc.splitTextToSize(reportData.summary, pageWidth - 28);
+  doc.text(summaryLines, 14, currentY);
+  currentY += (summaryLines.length * 5) + 10;
+
+  // Check Page break before FIR
+  if (currentY > 230) {
+    doc.addPage();
+    currentY = 20;
+  }
+
+  // Formal Complaint Text
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(11);
+  doc.text("Formal Complaint Text (For Police FIR)", 14, currentY);
+  currentY += 6;
+  
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  
+  const complaintLines = doc.splitTextToSize(reportData.formalComplaintText, pageWidth - 28);
+  
   let remainingLines = [...complaintLines];
   while (remainingLines.length > 0) {
     const spaceLeft = 280 - currentY;
-    const linesThatFit = Math.floor(spaceLeft / getLineHeightMM());
+    const linesThatFit = Math.floor(spaceLeft / 5);
     
     if (linesThatFit <= 0) {
       doc.addPage();
@@ -84,7 +124,7 @@ export const generatePDFReport = (reportData: ReportData) => {
     }
     
     const linesToDraw = remainingLines.slice(0, linesThatFit);
-    doc.text(linesToDraw, 20, currentY);
+    doc.text(linesToDraw, 14, currentY);
     
     remainingLines = remainingLines.slice(linesThatFit);
     if (remainingLines.length > 0) {
@@ -92,6 +132,20 @@ export const generatePDFReport = (reportData: ReportData) => {
       currentY = 20;
     }
   }
+
+  // Footer on all pages
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(8);
+    doc.text(
+      `Generated by GuardCall AI - Page ${i} of ${pageCount}`,
+      pageWidth / 2,
+      290,
+      { align: "center" }
+    );
+  }
   
-  doc.save(`GuardCall_Report_${reportData.callerNumber}.pdf`);
+  doc.save(`Cyber_Crime_Incident_${reportData.callerNumber}.pdf`);
 };

@@ -37,9 +37,9 @@ It is a web application that listens to your phone call in real-time. If it hear
 
 1. **Enter the Number**: You type in the caller's number. GuardCall checks if it's already a known scam number in the Community Database.
 2. **Start Protection**: You put your phone on speaker. GuardCall turns on your microphone.
-3. **AI Listens**: As you and the caller speak, the audio is sent to an AI (**Deepgram**) that turns the speech into text in real-time.
-4. **AI Analyzes**: Every 10 seconds, that text is sent to another AI (**Groq/Llama 3**) to analyze for risk.
-5. **Coaching**: If the AI detects a scam, a warning card slides up on your screen telling you what to do.
+3. **AI Listens (Zero-Hop)**: As you speak, your browser streams the audio directly to **Deepgram's** edge servers for ultra-low latency speech-to-text.
+4. **AI Analyzes (Event-Driven)**: The exact moment Deepgram flags a sentence as finished, the text triggers our AI (**Groq/Llama 3.3**) to instantly assess the threat level.
+5. **Instant Coaching**: If the AI detects a scam, a warning card slides up on your screen within seconds, telling you exactly what to say to spook them.
 6. **Report**: When you hang up, the AI scrubs any personal data (like your name or bank account) and saves a secure report of what happened.
 
 ---
@@ -59,7 +59,7 @@ This project is a **Monorepo**, meaning it holds both the Frontend (Client) and 
 
 * **Backend (The brain and server)**:
   * **Node.js & Express**: The server that handles requests from the frontend.
-  * **Socket.IO**: Keeps a continuous, live connection open between the frontend and backend so audio can stream instantly.
+  * **Socket.IO**: Keeps a continuous, live connection open for real-time transcription updates and instant AI coaching triggers without HTTP polling overhead.
   * **MongoDB & Mongoose**: The database where we save user sessions and scam reports.
   * **Zod**: A strict "bouncer" that ensures the AI's responses are perfectly formatted before the app uses them.
 

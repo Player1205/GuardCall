@@ -269,7 +269,30 @@ const NumberCheck: React.FC = () => {
                 placeholder="+91 98765 43210"
                 className="w-full bg-white/[0.04] border border-white/10 rounded-xl pl-12 pr-4 py-3.5 text-textMain placeholder:text-textMain/25 focus:outline-none focus:border-primary/50 focus:bg-white/[0.06] transition-all duration-200 text-base font-medium tracking-wide"
                 value={callerNumber}
-                onChange={(e) => setCallerNumber(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const hasPlus = val.startsWith('+');
+                  let digits = val.replace(/\D/g, '');
+                  
+                  let formatted = '';
+                  if (hasPlus && digits.startsWith('91')) {
+                    const country = digits.slice(0, 2);
+                    const p1 = digits.slice(2, 7);
+                    const p2 = digits.slice(7, 12);
+                    formatted = `+${country}`;
+                    if (p1) formatted += ` ${p1}`;
+                    if (p2) formatted += ` ${p2}`;
+                  } else {
+                    if (digits.length > 10) digits = digits.slice(0, 10);
+                    if (digits.length > 5) {
+                      formatted = `${digits.slice(0, 5)} ${digits.slice(5)}`;
+                    } else {
+                      formatted = digits;
+                    }
+                  }
+                  
+                  setCallerNumber(formatted || val);
+                }}
                 required
               />
             </div>

@@ -9,29 +9,31 @@ const getGroq = () => {
 };
 
 const SCAM_DETECTION_SYSTEM_PROMPT = `You are a real-time scam detection AI for India. 
-Analyze this phone call transcript and detect scam patterns.
+Analyze this phone call transcript and detect crime patterns across multiple categories.
 Detect:
-- Authority impersonation (CBI, ED, RBI, police, customs) without verifiable ID
-- Manufactured urgency ("arrested in 2 hours", "act now", "warrant will be issued")
-- Financial demands (UPI transfer, cash deposit, OTP, card numbers, bank details)
-- Isolation tactics ("do not tell family", "this is confidential", "don't hang up")
-- Threats of legal action without formal documentation
-- Requesting Aadhaar, PAN, or other government ID verbally
+1. Fake Police/Digital Arrest: Authority impersonation (CBI, ED, Customs) or warrants.
+2. Sextortion & Blackmail: Threats to leak photos, videos, or private data.
+3. Tech Support/Remote Access: Claiming PC/phone is hacked or asking for AnyDesk/TeamViewer.
+4. Virtual Kidnapping/Emergency: Claiming family is in jail/hospital to extort money.
+5. Job/Investment Fraud: Offering easy money (like YouTube videos) but demanding a deposit.
+6. Lottery/Customs Duty: Claiming a prize/parcel is stuck at customs and needs tax clearance.
+7. Harassment & Intimidation: Severe verbal abuse or stalking.
 
 RESPOND ONLY WITH VALID JSON. NO explanation text before or after.
 Format: { "risk": <number 0-100>, "signal": "<brief what you detected>", "coaching": "<exact words for user to say right now>" }
 
 IMPORTANT RULES FOR SCORING AND COACHING:
-1. DO NOT jump to conclusions early. If the caller merely introduces themselves as an authority figure (e.g. "This is Inspector Sharma" or "I am calling from Cyber Crime"), this is NOT a threat. Keep risk strictly at 0 and DO NOT provide any coaching ("coaching": "") until they make a CLEAR threat, demand money, or create manufactured urgency.
-2. ONLY provide coaching when there is a CLEAR threat, demand for money, or demand for sensitive info (e.g. "your account will be frozen", "pay this fine").
-3. If no clear threat or demand is present yet, return: { "risk": 0, "signal": "normal conversation or introduction", "coaching": "" }
+1. DO NOT jump to conclusions early. An introduction is NOT a threat. Keep risk at 0 and coaching empty ("") until there is a CLEAR threat or demand.
+2. ONLY provide coaching when there is a CLEAR threat, demand for money, or manipulation tactic.
 
-IMPORTANT COACHING STRATEGY (Only when rule 2 is met): 
-When you detect a clear scam threat/demand, do NOT just tell the user to hang up. Instead, provide "offensive coaching" to make the scammer panic, think they called the wrong person, and cut the call themselves. 
-For example:
-- If they claim to be police/CBI/Customs AND make a threat: Tell the user to say "Please provide your official employee ID and department jurisdiction code before we proceed."
-- If they ask for OTP/Money: Tell the user to say "This is a corporate device monitored by the IT department, all network requests are being traced. Who is this?"
-- To generally spook them: Tell the user to say "You've actually called a law enforcement officer's personal number. I am tracing this call's origin right now."`;
+IMPORTANT COACHING STRATEGY (Street-Smart Human & Logic Traps):
+When a clear threat/demand is detected, do NOT tell the user to hang up or aggressively threaten the scammer. Instead, provide "Street-Smart Human" coaching. The user should sound highly confident, sarcastic, and completely unfazed, using logic traps to break the scammer's script and make them realize their scam failed.
+CRITICAL LANGUAGE RULE: If the scammer is speaking Hindi, the coaching MUST be in conversational, street-smart Hinglish (humanly spoken Hindi written in English script). Do NOT use robotic textbook translations.
+Examples:
+- Fake Police: "Acha arrest warrant aaya hai? Thik hai bhai, main abhi DSP saab se baat karke inquiry daalta hu. Apna batch number batana."
+- Tech Support: "Mera laptop hack ho gaya? Acha, par maine toh pichle ek hafte se laptop chalu hi nahi kiya bhai. Kisko ullu bana raha hai?"
+- Sextortion: "Bhai tu bhej de jisko bhejna hai. Vaise mera phone corporate-monitored hai, tera IP trace ho gaya hai."
+- Lottery/Customs: "Itna tax lag raha hai? Ek kaam kar, prize money me se tax kaat le aur baaki ka paisa bhej de."`;
 
 const RiskScoreSchema = z.object({
   risk: z.number().min(0).max(100).default(0),
@@ -100,10 +102,13 @@ export const generateReport = async (transcript: string, peakRiskScore: number, 
     const response = await getGroq().chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
-        { role: 'system', content: `You are a fraud incident report generator for India. Generate a structured report from this scam call transcript. RESPOND ONLY WITH VALID JSON in this exact format:
+        { role: 'system', content: `You are a fraud incident report generator for India. Generate a structured report from this scam call transcript.
+CRITICAL RULE: Ensure perfect spelling and grammar in all your outputs. The audio transcript may contain garbled text, slang, or misspellings from the Speech-to-Text engine. DO NOT blindly copy misspelled words. You MUST correct all spelling errors, fix grammar, and write in highly professional, perfectly spelled English. NEVER hallucinate or output wrongly written words.
+
+RESPOND ONLY WITH VALID JSON in this exact format:
 {
   "summary": "<2 sentence plain English summary>",
-  "scamType": "<Digital Arrest | KYC Fraud | Banking Fraud | Impersonation | Investment Fraud | Other>",
+  "scamType": "<Digital Arrest | Sextortion/Blackmail | Tech Support Scam | Fake Emergency/Kidnapping | Job Fraud | Lottery Scam | Harassment/Intimidation | Other>",
   "redFlags": ["<flag 1>", "<flag 2>"],
   "psychologicalTactics": ["<tactic 1>", "<tactic 2>"],
   "evidenceLog": [{"time": "<MM:SS>", "event": "<what happened>"}],

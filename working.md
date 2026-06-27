@@ -19,24 +19,25 @@ GuardCall uses a client-server architecture with continuous real-time communicat
 - The **Server** initializes a new session state, resetting risk scores and transcripts, and establishes a secure connection with **Deepgram** (Speech-to-Text).
 
 ### 2. Real-Time Audio Streaming
-- As the user and the caller speak, the **Client** captures the audio in small chunks.
-- These chunks are emitted via Socket.IO (`audio:chunk`) to the **Server**.
-- The **Server** immediately forwards these raw audio chunks to **Deepgram**. If Deepgram is still connecting, the server buffers the audio chunks (up to 10 seconds) so no speech is lost.
+- The **Client** fetches a temporary, short-lived Deepgram access token from the **Server** (`/api/deepgram/token`).
+- As the user and the caller speak, the **Client** captures the audio in small chunks and streams them directly to **Deepgram's** edge servers via a native WebSocket connection.
+- *This zero-hop architecture bypasses the Node.js backend for raw audio entirely, drastically slashing latency and server bandwidth.*
 
 ### 3. Speech-to-Text (STT) Processing
-- **Deepgram** processes the audio instantly and streams text back to the **Server**.
-- The **Server** appends the new text to a `rollingTranscript` (keeping a window of the last 400 words to maintain context without overloading the AI).
-- The **Server** emits a `transcript:update` to the **Client** so the user can see what the app is hearing.
+- **Deepgram** processes the audio instantly and streams text directly back to the **Client**.
+- The **Client** maintains a `rollingTranscript` (keeping a window of the last 400 words to maintain context without overloading the AI) and updates the UI instantly.
+- The **Client** emits a `transcript:update` event to the **Server**, passing the latest text for AI analysis.
 
 ### 4. AI Risk Analysis (The Core Loop)
-- Every 10 seconds, the **Server** triggers a background interval.
-- It sends the `rollingTranscript` to the **Groq API** (powered by the Llama 3 model).
+- Instead of relying on an arbitrary 10-second timer, the **Server** uses a completely **event-driven** architecture.
+- The moment the **Server** receives a `transcript:update` from the Client, it immediately sends the text to the **Groq API** (powered by the Llama 3 model).
+- To prevent spamming the Groq API when a user speaks rapidly, the server uses a 2.5-second debounce lock.
 - **Groq** analyzes the text for manipulation tactics (fake urgency, asking for money, threats) and returns:
   - **Risk Score**: A number from 0 to 100.
   - **Signal**: The threat level (e.g., Safe, Suspicious, Dangerous).
   - **Coaching**: Exact phrases the user should say to counter the scammer.
 - The **Server** sends this data back to the **Client** via a `risk:update` event.
-- If the risk score is high, the **Client** uses Framer Motion to slide the Coaching Card onto the screen.
+- If the risk score is high, the **Client** uses Framer Motion to instantly slide the Coaching Card onto the screen.
 
 ### 5. Post-Call Processing & Reporting
 - When the user hangs up, the **Client** emits a `session:end` event.
