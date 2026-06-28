@@ -8,6 +8,29 @@ import RiskIndicator from './RiskIndicator';
 import CoachingCard from './CoachingCard';
 import VolumeMonitor from './VolumeMonitor';
 
+// Helper function to calculate Jaccard similarity between two strings
+const calculateSimilarity = (str1: string, str2: string) => {
+  const getWords = (s: string) => new Set(s.toLowerCase().match(/\b\w+\b/g) || []);
+  const set1 = getWords(str1);
+  const set2 = getWords(str2);
+  if (set1.size === 0 && set2.size === 0) return 1;
+  
+  let intersection = 0;
+  set1.forEach(word => {
+    if (set2.has(word)) intersection++;
+  });
+  
+  const union = set1.size + set2.size - intersection;
+  return intersection / union;
+};
+
+const PHASE_ORDER: Record<string, number> = {
+  'intro': 0,
+  'allegation': 1,
+  'intimidation': 2,
+  'demand': 3
+};
+
 const CallSession: React.FC = () => {
   const navigate = useNavigate();
   const { 
@@ -16,7 +39,67 @@ const CallSession: React.FC = () => {
   } = useSession();
   
   const [cardDismissedId, setCardDismissedId] = useState<string | null>(null);
+  const [dismissedPhases, setDismissedPhases] = useState<Set<string>>(new Set());
   const [seconds, setSeconds] = useState(0);
+
+  // State to hold the currently displayed coaching card data to prevent rapid flashing
+  const [displayCardData, setDisplayCardData] = useState<{ risk: number, signal: string, phase: string, coaching: string } | null>(null);
+  const closeTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const lastUpdateTimeRef = React.useRef<number>(0);
+
+  useEffect(() => {
+    if (riskData.risk >= 40) {
+      // Cancel any pending close timer since the threat is active
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+        closeTimerRef.current = null;
+      }
+
+      const now = Date.now();
+      const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
+      const isCooldownOver = timeSinceLastUpdate > 5000; // 5 seconds lock-in cooldown
+
+      let isSameContext = false;
+      if (displayCardData) {
+        // Consider it the same context if the phase (motive) is identical OR if the text is 80% similar
+        const similarity = calculateSimilarity(displayCardData.coaching, riskData.coaching);
+        isSameContext = (displayCardData.phase === riskData.phase) || (similarity > 0.80);
+      }
+      
+      // Update the card text if:
+      // 1. No card is currently displayed.
+      // 2. The context/motive has changed (different phase and not similar text).
+      // We no longer use a 5-second lock because isSameContext already prevents spamming, 
+      // and we MUST show new phase escalations instantly.
+      if (!displayCardData || !isSameContext) {
+        setDisplayCardData({
+          risk: riskData.risk,
+          signal: riskData.signal,
+          phase: riskData.phase || 'intro',
+          coaching: riskData.coaching
+        });
+        lastUpdateTimeRef.current = now;
+      } else if (displayCardData.risk !== riskData.risk) {
+        // Update just the risk score silently if text remains similar or phase is same
+        setDisplayCardData(prev => prev ? { ...prev, risk: riskData.risk } : null);
+      }
+    } else {
+      // Risk is low. Set a 5-second delay before hiding the card to prevent rapid close/open flashing.
+      if (!closeTimerRef.current && displayCardData) {
+        closeTimerRef.current = setTimeout(() => {
+          setDisplayCardData(null);
+          closeTimerRef.current = null;
+        }, 5000);
+      }
+    }
+
+    // Cleanup on unmount
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, [riskData.risk, riskData.signal, riskData.phase, riskData.coaching]);
 
   const callbacksRef = React.useRef({ startSession, endSession });
   useEffect(() => {
@@ -61,8 +144,15 @@ const CallSession: React.FC = () => {
   };
 
   const handleDismissCard = useCallback(() => {
-    setCardDismissedId(riskData.signal);
-  }, [riskData.signal]);
+    if (displayCardData) {
+      setCardDismissedId(displayCardData.signal);
+      setDismissedPhases(prev => {
+        const next = new Set(prev);
+        next.add(displayCardData.phase);
+        return next;
+      });
+    }
+  }, [displayCardData]);
 
   if (permissionError) {
     return (
@@ -86,7 +176,9 @@ const CallSession: React.FC = () => {
     );
   }
 
-  const showCard = riskData.risk >= 40 && riskData.signal !== cardDismissedId;
+  const showCard = displayCardData !== null && 
+                   displayCardData.signal !== cardDismissedId &&
+                   !dismissedPhases.has(displayCardData.phase);
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col relative max-w-lg mx-auto overflow-hidden">
@@ -131,12 +223,12 @@ const CallSession: React.FC = () => {
 
       {/* Coaching Card Overlay */}
       <AnimatePresence>
-        {showCard && (
+        {showCard && displayCardData && (
           <CoachingCard 
-            key={riskData.signal} // Re-animates if signal changes
-            risk={riskData.risk} 
-            signal={riskData.signal} 
-            coaching={riskData.coaching} 
+            key={displayCardData.signal} // Re-animates if signal changes
+            risk={displayCardData.risk} 
+            signal={displayCardData.signal} 
+            coaching={displayCardData.coaching} 
             onDismiss={handleDismissCard} 
           />
         )}

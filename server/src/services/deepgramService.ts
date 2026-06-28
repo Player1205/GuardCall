@@ -25,7 +25,7 @@ export const setupDeepgram = async (onTranscript: (transcript: string) => void) 
      */
     const connection = await deepgram.listen.v1.connect({
       model: 'nova-2',
-      language: 'hi',
+      language: 'en-IN',
       smart_format: 'true',
       interim_results: 'true',
       vad_events: 'true',

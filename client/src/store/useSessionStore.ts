@@ -3,6 +3,7 @@ import { create } from 'zustand';
 export interface RiskData {
   risk: number;
   signal: string;
+  phase?: 'intro' | 'allegation' | 'intimidation' | 'demand';
   coaching: string;
   peakRiskScore: number;
 }
@@ -44,7 +45,7 @@ export const useSessionStore = create<SessionState>((set) => ({
   setSessionId: (id) => set({ sessionId: id }),
   transcript: '',
   setTranscript: (text) => set({ transcript: text }),
-  riskData: { risk: 0, signal: '', coaching: '', peakRiskScore: 0 },
+  riskData: { risk: 0, signal: '', phase: 'intro', coaching: '', peakRiskScore: 0 },
   setRiskData: (data) => set({ riskData: data }),
   reportResult: null,
   setReportResult: (result) => set({ reportResult: result }),

@@ -46,10 +46,10 @@ const CoachingCard: React.FC<CoachingCardProps> = ({ risk, signal, coaching, onD
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
-      className={`absolute bottom-[100px] left-4 right-4 z-50 rounded-2xl overflow-hidden border backdrop-blur-xl ${tierStyle.cardBg} ${tierStyle.glow}`}
+      className={`absolute bottom-[100px] left-4 right-4 z-50 rounded-2xl border backdrop-blur-xl max-h-[calc(100dvh-180px)] flex flex-col overflow-hidden ${tierStyle.cardBg} ${tierStyle.glow}`}
     >
       {/* Header bar */}
-      <div className={`${tierStyle.headerBg} px-4 py-2 flex items-center justify-between`}>
+      <div className={`${tierStyle.headerBg} px-4 py-2 flex items-center justify-between shrink-0`}>
         <div className="flex items-center gap-2 font-bold text-white tracking-wide text-sm">
           {tierStyle.icon}
           {tierStyle.label}
@@ -62,7 +62,7 @@ const CoachingCard: React.FC<CoachingCardProps> = ({ risk, signal, coaching, onD
         </button>
       </div>
 
-      <div className="p-4 flex flex-col gap-3">
+      <div className="p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
         {/* Signal Detected */}
         <div className="text-sm">
           <span className="text-white/50 uppercase tracking-wider text-[10px] block mb-1">Detected Pattern</span>

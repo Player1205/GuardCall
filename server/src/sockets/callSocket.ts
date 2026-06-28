@@ -8,14 +8,19 @@ interface SessionData {
   sessionId: string;
   userId: string;
   peakRiskScore: number;
+  lastCoachingSent?: string;
 }
 
 export const setupCallSocket = (socket: Socket, io: Server) => {
   let rollingTranscript = '';
   let peakRiskScore = 0;
   let sessionData: SessionData | null = null;
-  let lastScoreTime = 0;
+  let turnStartTime = 0;
   let isScoring = false;
+
+  let lastScoredTranscript = '';
+  let lastReceivedTranscript = '';
+  let turnTimer: NodeJS.Timeout | null = null;
 
   socket.on('session:start', ({ callerNumber, sessionId, userId }) => {
     logger.info(`Session started: ${sessionId}`);
@@ -24,34 +29,86 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
 
     sessionData = { callerNumber, sessionId, userId, peakRiskScore: 0 };
     rollingTranscript = '';
+    lastScoredTranscript = '';
+    lastReceivedTranscript = '';
     peakRiskScore = 0;
-    lastScoreTime = 0;
+    turnStartTime = 0;
     isScoring = false;
+    if (turnTimer) {
+      clearTimeout(turnTimer);
+      turnTimer = null;
+    }
   });
 
   socket.on('transcript:update', async (newTranscript: string) => {
     if (!sessionData) return;
     
+    // Ignore duplicate or whitespace-only updates from the STT engine
+    if (newTranscript.trim() === lastReceivedTranscript.trim()) {
+      return;
+    }
+    
+    lastReceivedTranscript = newTranscript;
     rollingTranscript = newTranscript;
 
-    // Debounce: Only score if not currently scoring AND at least 2.5s have passed
-    const now = Date.now();
-    if (rollingTranscript.trim().length > 10 && !isScoring && (now - lastScoreTime > 2500)) {
-      isScoring = true;
-      lastScoreTime = now;
+    // Reset the turn timer because NEW words have arrived.
+    if (turnTimer) {
+      clearTimeout(turnTimer);
+    }
+
+    const isTranscriptChanged = rollingTranscript.trim() !== lastScoredTranscript.trim();
+
+    if (rollingTranscript.trim().length > 10 && isTranscriptChanged) {
+      const now = Date.now();
       
-      try {
-        const { risk, signal, coaching } = await scoreRisk(rollingTranscript);
+      // Mark the start of a continuous speaking turn
+      if (turnStartTime === 0) {
+        turnStartTime = now;
+      }
 
-        if (risk > peakRiskScore) {
-          peakRiskScore = risk;
+      const triggerScore = async () => {
+        if (isScoring) return;
+        isScoring = true;
+        
+        // Reset turn start time since we just scored this chunk
+        turnStartTime = 0;
+        lastScoredTranscript = rollingTranscript;
+        
+        try {
+          const { risk, signal, phase, coaching } = await scoreRisk(rollingTranscript, sessionData!.lastCoachingSent || '');
+
+          if (risk > peakRiskScore) {
+            peakRiskScore = risk;
+          }
+
+          if (coaching) {
+            sessionData!.lastCoachingSent = coaching;
+          }
+
+          socket.emit('risk:update', { risk, signal, phase, coaching, peakRiskScore });
+        } catch (e: any) {
+          logger.error('Error scoring risk', { error: e.message });
+        } finally {
+          isScoring = false;
         }
+      };
 
-        socket.emit('risk:update', { risk, signal, coaching, peakRiskScore });
-      } catch (e: any) {
-        logger.error('Error scoring risk', { error: e.message });
-      } finally {
-        isScoring = false;
+      // Check if newly spoken words contain critical triggers
+      const newText = rollingTranscript.substring(lastScoredTranscript.length).toLowerCase();
+      const criticalKeywords = ['arrest', 'police', 'money', 'rupees', 'account', 'otp', 'password', 'transfer', 'security', 'cbi', 'customs', 'illegal', 'warrant'];
+      const hasCriticalKeyword = criticalKeywords.some(kw => newText.includes(kw));
+
+      // 1. Universal Safety Net: Force a score if they've been speaking continuously for 1.5 seconds
+      if (turnStartTime > 0 && (now - turnStartTime > 1500) && !isScoring) {
+        triggerScore();
+      } 
+      // 2. Keyword Snapper: If a critical keyword is spoken, reduce the silence debounce to 0.8s
+      else if (hasCriticalKeyword && !isScoring) {
+        turnTimer = setTimeout(triggerScore, 800);
+      } 
+      // 3. Normal Debounce: Wait for 1.5 seconds of silence
+      else {
+        turnTimer = setTimeout(triggerScore, 1500);
       }
     }
   });

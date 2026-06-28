@@ -8,48 +8,126 @@ const getGroq = () => {
   return groqInstance;
 };
 
+const FALLBACK_MODELS = [
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'gemma2-9b-it'
+];
+
+const modelCooldowns: Record<string, number> = {};
+const COOLDOWN_DURATION = 5 * 60 * 1000; // 5 minutes cooldown
+
+const executeWithFallback = async (options: any) => {
+  let lastError;
+  const now = Date.now();
+
+  // Filter out models that are currently on cooldown
+  let modelsToTry = FALLBACK_MODELS.filter(model => !modelCooldowns[model] || now >= modelCooldowns[model]);
+  
+  // If all models are on cooldown, ignore cooldowns and try all of them
+  if (modelsToTry.length === 0) {
+    modelsToTry = FALLBACK_MODELS;
+  }
+
+  for (const model of modelsToTry) {
+    try {
+      return await getGroq().chat.completions.create({
+        ...options,
+        model
+      }, { timeout: 3000 });
+    } catch (err: any) {
+      lastError = err;
+      
+      const isRateLimit = err.status === 429 || 
+                          err.message?.includes('rate_limit') || 
+                          err.message?.includes('429');
+                          
+      if (isRateLimit) {
+        logger.warn(`Groq API rate-limited for model ${model}. Putting on 5-minute cooldown. Trying next...`, { error: err.message });
+        modelCooldowns[model] = Date.now() + COOLDOWN_DURATION;
+      } else {
+        logger.warn(`Groq API failed with model ${model}, trying next...`, { error: err.message });
+      }
+    }
+  }
+  throw lastError;
+};
+
 const SCAM_DETECTION_SYSTEM_PROMPT = `You are a real-time scam detection AI for India. 
-Analyze this phone call transcript and detect crime patterns across multiple categories.
-Detect:
-1. Fake Police/Digital Arrest: Authority impersonation (CBI, ED, Customs) or warrants.
-2. Sextortion & Blackmail: Threats to leak photos, videos, or private data.
-3. Tech Support/Remote Access: Claiming PC/phone is hacked or asking for AnyDesk/TeamViewer.
-4. Virtual Kidnapping/Emergency: Claiming family is in jail/hospital to extort money.
-5. Job/Investment Fraud: Offering easy money (like YouTube videos) but demanding a deposit.
-6. Lottery/Customs Duty: Claiming a prize/parcel is stuck at customs and needs tax clearance.
-7. Harassment & Intimidation: Severe verbal abuse or stalking.
+Analyze this phone call transcript and detect crime patterns.
 
 RESPOND ONLY WITH VALID JSON. NO explanation text before or after.
-Format: { "risk": <number 0-100>, "signal": "<brief what you detected>", "coaching": "<exact words for user to say right now>" }
+Format: 
+{ 
+  "thought": "<1 sentence analyzing the LATEST statements. Contrast it with the previous coaching and explain if/why we must pivot to a new defense>",
+  "risk": <number 0-100>, 
+  "signal": "<brief what you detected>", 
+  "phase": "<intro | allegation | intimidation | demand>", 
+  "coaching": "<exact words for user to say right now>" 
+}
 
-IMPORTANT RULES FOR SCORING AND COACHING:
-1. DO NOT jump to conclusions early. An introduction is NOT a threat. Keep risk at 0 and coaching empty ("") until there is a CLEAR threat or demand.
-2. ONLY provide coaching when there is a CLEAR threat, demand for money, or manipulation tactic.
+CONVERSATIONAL PHASES (GOVERNED STRICTLY BY THE LATEST STATEMENTS):
+- "intro": Greetings, introductions, or name checks (e.g. "Hello, am I speaking to the owner of this number? This is Inspector Sharma"). Risk MUST be under 45 (typically 20-30) and coaching MUST be empty (""). Do NOT show alerts for greetings.
+- "allegation": Scammer makes an accusation (e.g. package seized, account blocked, relative arrested). Coaching: Focus strictly on asking for verification (IDs, tracking details, hub address). DO NOT mention money or arrests yet.
+- "intimidation": Scammer uses scare tactics. Coaching: Expose the bluff confidently and mock their authority. ONLY mention that "digital arrest is illegal" if they explicitly use the words "digital arrest". Otherwise, just tell them to send their officers to your address and stop wasting your time.
+- "demand": Scammer asks for money, bank transfers, OTPs, or app downloads (AnyDesk). Coaching: Firmly refuse the action and expose the fraud.
 
-IMPORTANT COACHING STRATEGY (Street-Smart Human & Logic Traps):
-When a clear threat/demand is detected, do NOT tell the user to hang up or aggressively threaten the scammer. Instead, provide "Street-Smart Human" coaching. The user should sound highly confident, sarcastic, and completely unfazed, using logic traps to break the scammer's script and make them realize their scam failed.
-CRITICAL LANGUAGE RULE: Default your coaching language to English. ONLY use conversational, street-smart Hinglish (humanly spoken Hindi written in English script) if the MAJORITY of the conversation is clearly in Hindi. Do not assume the user or scammer is a Hindi speaker just because of a single greeting like 'Namaste'. Do NOT use robotic textbook translations.
-Examples:
-- Fake Police: "Acha arrest warrant aaya hai? Thik hai bhai, main abhi DSP saab se baat karke inquiry daalta hu. Apna batch number batana."
-- Tech Support: "Mera laptop hack ho gaya? Acha, par maine toh pichle ek hafte se laptop chalu hi nahi kiya bhai. Kisko ullu bana raha hai?"
-- Sextortion: "Bhai tu bhej de jisko bhejna hai. Vaise mera phone corporate-monitored hai, tera IP trace ho gaya hai."
-- Lottery/Customs: "Itna tax lag raha hai? Ek kaam kar, prize money me se tax kaat le aur baaki ka paisa bhej de."`;
+CRITICAL RULES FOR SCORING AND COACHING:
+1. NO EARLY ALERTS FOR INTRODUCTIONS: Simply stating "I am Inspector Sharma from the Cyber Cell" is NOT an active threat. Keep risk score under 40 and coaching empty ("") until they proceed to make an allegation or scare tactic.
+2. THE 40+ COACHING RULE: ONLY provide a coaching string if the risk score is 40 or higher. For any risk below 40, coaching MUST be empty ("").
+3. TARGET THE LATEST THREAT: You MUST update your coaching when the scammer escalates. If they shift from a seized package to a digital arrest, your coaching MUST shift to defending against digital arrest. Do not stay stuck on the old threat.
+4. PHASE PRIORITY RULE (CRITICAL): Phases have a strict hierarchy of priority: demand > intimidation > allegation > intro. If the scammer's latest statement contains elements of multiple phases (e.g. they threaten digital arrest AND demand a bank transfer), you MUST classify it as the HIGHER phase (demand) and generate coaching that focuses on the higher phase (e.g. refusing the transfer).
+5. OUT-OF-THE-BOX & STREET-SMART: Coaching MUST be written in the 1st person, as a direct script for the victim to say. Make comebacks sarcastic, confident, and completely unfazed. Expose the scammer's lies.
+6. NO DOCUMENT HALLUCINATIONS: NEVER claim to not have universally owned Indian documents (Aadhaar or PAN). If Aadhaar is mentioned, say you will verify it with the local station.
+7. STRICT CONTEXT MATCHING (CRITICAL): Your comebacks MUST strictly target what the scammer is currently accusing or demanding. If the scammer is only discussing a seized package or customs issue, you MUST ONLY coach the user to verify the package (e.g. tracking number, hub location). You MUST NOT mention digital arrest, police dispatch, or legal rights (lawyer) until the scammer explicitly threatens arrest, jail, or dispatching officers in the transcript. Do not anticipate future threats.
+8. FOCUS ON SCAMMER'S THREATS (CRITICAL): The transcript contains dialogue from both the scammer and the victim. When generating comebacks, ONLY respond to allegations, threats, or demands made by the scammer. DO NOT generate comebacks based on words or questions spoken by the victim (e.g., if the victim says "digital arrest", do NOT trigger the digital arrest comeback unless the scammer also threatened it).
+
+CRITICAL LANGUAGE RULE:
+1. DEFAULT TO ENGLISH: Your coaching MUST be entirely in ENGLISH by default.
+2. IGNORE DEVANAGARI: Even if names/words appear in Hindi script, STAY IN ENGLISH.
+3. 80-100% HINDI RULE: ONLY use HINGLISH if the entire conversation transcript is overwhelmingly (80%+) in Hindi.
+
+Examples of Coaching (For Reference only, do NOT copy words blindly):
+- Allegation: "Oh, a package? Give me the tracking number so I can check it."
+- Intimidation: "Digital arrest is illegal in India. Send your officers to my address, I'll meet them directly."
+- Demand (Money): "I'm not transferring any money. I will verify this with my bank branch manager."`;
 
 const RiskScoreSchema = z.object({
-  risk: z.number().min(0).max(100).default(0),
-  signal: z.string().default(''),
-  coaching: z.string().default('')
+  thought: z.string().catch(''),
+  risk: z.number().catch(0),
+  signal: z.string().catch(''),
+  phase: z.string().catch('intro'),
+  coaching: z.string().catch('')
 });
 
 export type RiskScore = z.infer<typeof RiskScoreSchema>;
 
-export const scoreRisk = async (transcript: string): Promise<RiskScore> => {
+const sanitizeTranscript = (text: string): string => {
+  return text
+    .replace(/शर्मा/g, 'Sharma')
+    .replace(/आधार/g, 'Aadhaar')
+    .replace(/आधा/g, 'Aadhaar')
+    .replace(/फेडएक्स/g, 'FedEx');
+};
+
+export const scoreRisk = async (transcript: string, lastCoaching: string = ''): Promise<RiskScore> => {
   try {
-    const response = await getGroq().chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const cleanTranscript = sanitizeTranscript(transcript);
+    // Extract the last 3 non-empty lines to focus the model's attention on the current state
+    const transcriptLines = cleanTranscript.trim().split('\n').filter(line => line.trim().length > 0);
+    const latestStatements = transcriptLines.slice(-3).join('\n');
+
+    // Get only the segment added in the current turn to prevent past context confusion
+    const userContent = `LATEST SCAMMER STATEMENTS FOR EVALUATION:\n${latestStatements}${
+      lastCoaching 
+      ? `\n\nPREVIOUS COACHING PROVIDED: "${lastCoaching}"` 
+      : ''
+    }`;
+
+    const response = await executeWithFallback({
       messages: [
         { role: 'system', content: SCAM_DETECTION_SYSTEM_PROMPT },
-        { role: 'user', content: `TRANSCRIPT:\n${transcript}` }
+        { role: 'user', content: userContent }
       ],
       temperature: 0.1,
       max_tokens: 200,
@@ -60,14 +138,13 @@ export const scoreRisk = async (transcript: string): Promise<RiskScore> => {
     return result;
   } catch (err: any) {
     logger.error('Groq scoreRisk error', { error: err.message });
-    return { risk: 0, signal: '', coaching: '' };
+    return { risk: 0, signal: '', phase: 'intro', coaching: '' };
   }
 };
 
 export const scrubPII = async (transcript: string): Promise<string> => {
   try {
-    const response = await getGroq().chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const response = await executeWithFallback({
       messages: [
         { role: 'system', content: `Redact PII from this transcript. Replace: Aadhaar numbers with [AADHAAR], bank accounts with [ACCOUNT], addresses with [ADDRESS], full names of the victim with [NAME], phone numbers other than the scammer's with [PHONE]. Keep all scammer statements intact. Return ONLY the redacted transcript text, nothing else.` },
         { role: 'user', content: transcript }
@@ -99,8 +176,7 @@ export type GeneratedReport = z.infer<typeof ReportSchema>;
 
 export const generateReport = async (transcript: string, peakRiskScore: number, callerNumber: string, callDuration: string): Promise<GeneratedReport | null> => {
   try {
-    const response = await getGroq().chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+    const response = await executeWithFallback({
       messages: [
         { role: 'system', content: `You are a fraud incident report generator for India. Generate a structured report from this scam call transcript.
 CRITICAL RULE: Ensure perfect spelling and grammar in all your outputs. The audio transcript may contain garbled text, slang, or misspellings from the Speech-to-Text engine. DO NOT blindly copy misspelled words. You MUST correct all spelling errors, fix grammar, and write in highly professional, perfectly spelled English. NEVER hallucinate or output wrongly written words.

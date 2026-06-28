@@ -53,7 +53,7 @@ export const useSession = () => {
     setSessionId(newSessionId);
     setReportResult(null);
     setTranscript('');
-    setRiskData({ risk: 0, signal: '', coaching: '', peakRiskScore: 0 });
+    setRiskData({ risk: 0, signal: '', phase: 'intro', coaching: '', peakRiskScore: 0 });
     
     const userId = "anonymous-or-logged-in-user-id"; 
     
