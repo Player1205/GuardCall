@@ -77,12 +77,17 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
         try {
           const { risk, signal, phase, coaching } = await scoreRisk(rollingTranscript, sessionData!.lastCoachingSent || '');
 
+          // If the session ended while we were waiting for the AI response, safely abort
+          if (!sessionData) {
+            return;
+          }
+
           if (risk > peakRiskScore) {
             peakRiskScore = risk;
           }
 
           if (coaching) {
-            sessionData!.lastCoachingSent = coaching;
+            sessionData.lastCoachingSent = coaching;
           }
 
           socket.emit('risk:update', { risk, signal, phase, coaching, peakRiskScore });
