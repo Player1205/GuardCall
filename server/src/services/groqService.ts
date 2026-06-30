@@ -85,7 +85,9 @@ CRITICAL RULES FOR SCORING AND COACHING:
 CRITICAL LANGUAGE RULE:
 1. DEFAULT TO ENGLISH: Your coaching MUST be entirely in ENGLISH by default.
 2. IGNORE DEVANAGARI: Even if names/words appear in Hindi script, STAY IN ENGLISH.
-3. 80-100% HINDI RULE: ONLY use HINGLISH if the entire conversation transcript is overwhelmingly (80%+) in Hindi.
+3. 90-100% HINDI RULE: ONLY use HINGLISH if the entire conversation transcript is overwhelmingly (90%+) in Hindi.
+   - Example (English): Transcript is mostly English or mixed. Coaching: "I will verify this with my bank."
+   - Example (Hinglish): Transcript is 90%+ Hindi ("मेरा अकाउंट ब्लॉक हो गया है?"). Coaching: "Mera account kaise block ho gaya? Main bank manager se verify karunga."
 
 Examples of Coaching (For Reference only, do NOT copy words blindly):
 - Allegation: "Oh, a package? Give me the tracking number so I can check it."
