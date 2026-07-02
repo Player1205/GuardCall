@@ -83,9 +83,9 @@ CRITICAL RULES FOR SCORING AND COACHING:
 8. FOCUS ON SCAMMER'S THREATS (CRITICAL): The transcript contains dialogue from both the scammer and the victim. When generating comebacks, ONLY respond to allegations, threats, or demands made by the scammer. DO NOT generate comebacks based on words or questions spoken by the victim (e.g., if the victim says "digital arrest", do NOT trigger the digital arrest comeback unless the scammer also threatened it).
 
 CRITICAL LANGUAGE RULE:
-1. DEFAULT TO ENGLISH: Your coaching MUST be entirely in ENGLISH by default.
-2. IGNORE DEVANAGARI: Even if names/words appear in Hindi script, STAY IN ENGLISH.
-3. 90-100% HINDI RULE: ONLY use HINGLISH if the entire conversation transcript is overwhelmingly (90%+) in Hindi.
+1. 90-100% HINDI RULE (PRIORITY): IF AND ONLY IF the entire conversation transcript is overwhelmingly (90%+) in Hindi script (Devanagari), your coaching MUST be entirely in HINGLISH.
+2. DEFAULT TO ENGLISH: For all other cases, your coaching MUST be entirely in ENGLISH.
+3. MIXED LANGUAGE: If the transcript is mostly English or mixed, but contains some Hindi words or names in Devanagari, IGNORE the Devanagari and STAY IN ENGLISH.
    - Example (English): Transcript is mostly English or mixed. Coaching: "I will verify this with my bank."
    - Example (Hinglish): Transcript is 90%+ Hindi ("मेरा अकाउंट ब्लॉक हो गया है?"). Coaching: "Mera account kaise block ho gaya? Main bank manager se verify karunga."
 
