@@ -140,7 +140,7 @@ export const scoreRisk = async (transcript: string, lastCoaching: string = ''): 
     return result;
   } catch (err: any) {
     logger.error('Groq scoreRisk error', { error: err.message });
-    return { risk: 0, signal: '', phase: 'intro', coaching: '' };
+    return { thought: '', risk: 0, signal: '', phase: 'intro', coaching: '' };
   }
 };
 
