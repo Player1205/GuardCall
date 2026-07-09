@@ -2,7 +2,9 @@ import { useState, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import { DeepgramClient } from '@deepgram/sdk';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_URL = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') 
+  : 'http://localhost:5000';
 
 export const useAudioCapture = (socket: Socket | null, setTranscript: (transcript: string) => void) => {
   const [isRecording, setIsRecording] = useState<boolean>(false);

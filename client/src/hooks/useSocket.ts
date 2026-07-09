@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const SOCKET_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const SOCKET_URL = import.meta.env.VITE_API_URL 
+  ? import.meta.env.VITE_API_URL.replace(/\/api$/, '') 
+  : 'http://localhost:5000';
 
 export const useSocket = () => {
   const socketRef = useRef<Socket | null>(null);
