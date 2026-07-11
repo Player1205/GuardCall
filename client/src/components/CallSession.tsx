@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PhoneOff, Phone, Wifi, WifiOff } from 'lucide-react';
 import { useSession } from '../hooks/useSession';
+import { useSessionStore } from '../store/useSessionStore';
 import TranscriptFeed from './TranscriptFeed';
 import RiskIndicator from './RiskIndicator';
 import CoachingCard from './CoachingCard';
@@ -38,6 +39,8 @@ const CallSession: React.FC = () => {
     riskData, reportResult, permissionError, isConnected 
   } = useSession();
   
+  const setReportResult = useSessionStore((state) => state.setReportResult);
+  const [sessionStarted, setSessionStarted] = useState(false);
   const [cardDismissedId, setCardDismissedId] = useState<string | null>(null);
   const [dismissedPhases, setDismissedPhases] = useState<Set<string>>(new Set());
   const [seconds, setSeconds] = useState(0);
@@ -110,6 +113,7 @@ const CallSession: React.FC = () => {
   useEffect(() => {
     if (isConnected) {
       callbacksRef.current.startSession();
+      setSessionStarted(true);
     }
     return () => {
       if (isConnected) {
@@ -120,14 +124,21 @@ const CallSession: React.FC = () => {
 
   // Handle navigation when session ends
   useEffect(() => {
-    if (reportResult) {
+    if (reportResult && sessionStarted) {
       if (reportResult.safe) {
         navigate('/');
       } else {
         navigate('/report', { state: { report: reportResult.report } });
       }
     }
-  }, [reportResult, navigate]);
+  }, [reportResult, sessionStarted, navigate]);
+
+  // Reset reportResult when leaving the session screen
+  useEffect(() => {
+    return () => {
+      setReportResult(null);
+    };
+  }, [setReportResult]);
 
   // Call timer
   useEffect(() => {
