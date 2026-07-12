@@ -12,9 +12,6 @@
     "test:ui": "vitest --ui"
   },
   "dependencies": {
-    "@capacitor/android": "^8.4.1",
-    "@capacitor/cli": "^8.4.1",
-    "@capacitor/core": "^8.4.1",
     "@deepgram/sdk": "^5.5.0",
     "axios": "^1.18.1",
     "framer-motion": "^12.41.0",
