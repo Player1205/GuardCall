@@ -23,9 +23,18 @@ dotenv.config();
 
 export const app: Express = express();
 const server = http.createServer(app);
+
+// Allowed origins: deployed PWA + Capacitor native app origins
+const allowedOrigins = [
+  process.env.CLIENT_URL || 'http://localhost:5173',
+  'https://localhost',
+  'capacitor://localhost',
+  'http://localhost'
+];
+
 const io = new Server(server, {
   cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: allowedOrigins,
     methods: ['GET', 'POST']
   }
 });
@@ -41,7 +50,7 @@ const apiLimiter = rateLimit({
 });
 app.use('/api', apiLimiter);
 
-app.use(cors({ origin: process.env.CLIENT_URL || 'http://localhost:5173' }));
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 // Routes
