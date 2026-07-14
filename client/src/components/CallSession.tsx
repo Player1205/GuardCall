@@ -25,13 +25,6 @@ const calculateSimilarity = (str1: string, str2: string) => {
   return intersection / union;
 };
 
-const PHASE_ORDER: Record<string, number> = {
-  'intro': 0,
-  'allegation': 1,
-  'intimidation': 2,
-  'demand': 3
-};
-
 const CallSession: React.FC = () => {
   const navigate = useNavigate();
   const { 
@@ -47,10 +40,14 @@ const CallSession: React.FC = () => {
 
   // State to hold the currently displayed coaching card data to prevent rapid flashing
   const [displayCardData, setDisplayCardData] = useState<{ risk: number, signal: string, phase: string, coaching: string } | null>(null);
-  const closeTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+  const displayCardDataRef = React.useRef(displayCardData);
+  displayCardDataRef.current = displayCardData;
+  const closeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastUpdateTimeRef = React.useRef<number>(0);
 
   useEffect(() => {
+    const currentCard = displayCardDataRef.current;
+
     if (riskData.risk >= 40) {
       // Cancel any pending close timer since the threat is active
       if (closeTimerRef.current) {
@@ -59,14 +56,12 @@ const CallSession: React.FC = () => {
       }
 
       const now = Date.now();
-      const timeSinceLastUpdate = now - lastUpdateTimeRef.current;
-      const isCooldownOver = timeSinceLastUpdate > 5000; // 5 seconds lock-in cooldown
 
       let isSameContext = false;
-      if (displayCardData) {
+      if (currentCard) {
         // Consider it the same context if the phase (motive) is identical OR if the text is 80% similar
-        const similarity = calculateSimilarity(displayCardData.coaching, riskData.coaching);
-        isSameContext = (displayCardData.phase === riskData.phase) || (similarity > 0.80);
+        const similarity = calculateSimilarity(currentCard.coaching, riskData.coaching);
+        isSameContext = (currentCard.phase === riskData.phase) || (similarity > 0.80);
       }
       
       // Update the card text if:
@@ -74,7 +69,7 @@ const CallSession: React.FC = () => {
       // 2. The context/motive has changed (different phase and not similar text).
       // We no longer use a 5-second lock because isSameContext already prevents spamming, 
       // and we MUST show new phase escalations instantly.
-      if (!displayCardData || !isSameContext) {
+      if (!currentCard || !isSameContext) {
         setDisplayCardData({
           risk: riskData.risk,
           signal: riskData.signal,
@@ -82,13 +77,13 @@ const CallSession: React.FC = () => {
           coaching: riskData.coaching
         });
         lastUpdateTimeRef.current = now;
-      } else if (displayCardData.risk !== riskData.risk) {
+      } else if (currentCard.risk !== riskData.risk) {
         // Update just the risk score silently if text remains similar or phase is same
         setDisplayCardData(prev => prev ? { ...prev, risk: riskData.risk } : null);
       }
     } else {
       // Risk is low. Set a 5-second delay before hiding the card to prevent rapid close/open flashing.
-      if (!closeTimerRef.current && displayCardData) {
+      if (!closeTimerRef.current && currentCard) {
         closeTimerRef.current = setTimeout(() => {
           setDisplayCardData(null);
           closeTimerRef.current = null;

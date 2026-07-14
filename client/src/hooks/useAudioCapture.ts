@@ -105,7 +105,7 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
       setPermissionError(message);
       setHasPermission(false);
     }
-  }, [socket]);
+  }, [socket, setTranscript]);
 
   const stopRecording = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {

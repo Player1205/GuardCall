@@ -1,5 +1,5 @@
 import jsPDF from 'jspdf';
-import autoTable, { UserOptions } from 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 // Fix TS type for autoTable since it's a plugin
 interface jsPDFWithPlugin extends jsPDF {
