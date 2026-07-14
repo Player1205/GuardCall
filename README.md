@@ -7,9 +7,9 @@
 
   <p align="center">
     <a href="#what-is-guardcall">What is it?</a> •
-    <a href="#how-it-works">How It Works</a> •
+    <a href="#how-it-works-the-user-journey">How It Works</a> •
     <a href="#codebase-overview">Codebase Overview</a> •
-    <a href="#security-privacy">Security</a> •
+    <a href="#security--privacy">Security</a> •
     <a href="#getting-started">Getting Started</a>
   </p>
 </div>
