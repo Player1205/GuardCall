@@ -9,7 +9,7 @@ import RiskIndicator from './RiskIndicator';
 import CoachingCard from './CoachingCard';
 import VolumeMonitor from './VolumeMonitor';
 
-// Helper function to calculate Jaccard similarity between two strings
+// Jaccard similarity — used to detect when coaching text changes meaningfully
 const calculateSimilarity = (str1: string, str2: string) => {
   const getWords = (s: string) => new Set(s.toLowerCase().match(/\b\w+\b/g) || []);
   const set1 = getWords(str1);
@@ -38,7 +38,7 @@ const CallSession: React.FC = () => {
   const [dismissedPhases, setDismissedPhases] = useState<Set<string>>(new Set());
   const [seconds, setSeconds] = useState(0);
 
-  // State to hold the currently displayed coaching card data to prevent rapid flashing
+  // Stabilized coaching card state to prevent rapid flashing during risk updates
   const [displayCardData, setDisplayCardData] = useState<{ risk: number, signal: string, phase: string, coaching: string } | null>(null);
   const displayCardDataRef = React.useRef(displayCardData);
   displayCardDataRef.current = displayCardData;
@@ -49,7 +49,7 @@ const CallSession: React.FC = () => {
     const currentCard = displayCardDataRef.current;
 
     if (riskData.risk >= 40) {
-      // Cancel any pending close timer since the threat is active
+      // Cancel pending close — threat is still active
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
         closeTimerRef.current = null;
@@ -64,11 +64,7 @@ const CallSession: React.FC = () => {
         isSameContext = (currentCard.phase === riskData.phase) || (similarity > 0.80);
       }
       
-      // Update the card text if:
-      // 1. No card is currently displayed.
-      // 2. The context/motive has changed (different phase and not similar text).
-      // We no longer use a 5-second lock because isSameContext already prevents spamming, 
-      // and we MUST show new phase escalations instantly.
+      // Show new card when: no card exists, or the context/motive has changed
       if (!currentCard || !isSameContext) {
         setDisplayCardData({
           risk: riskData.risk,
@@ -78,11 +74,11 @@ const CallSession: React.FC = () => {
         });
         lastUpdateTimeRef.current = now;
       } else if (currentCard.risk !== riskData.risk) {
-        // Update just the risk score silently if text remains similar or phase is same
+        // Silently update risk score without changing displayed text
         setDisplayCardData(prev => prev ? { ...prev, risk: riskData.risk } : null);
       }
     } else {
-      // Risk is low. Set a 5-second delay before hiding the card to prevent rapid close/open flashing.
+      // Delay card dismissal by 5s to prevent rapid show/hide flashing
       if (!closeTimerRef.current && currentCard) {
         closeTimerRef.current = setTimeout(() => {
           setDisplayCardData(null);
@@ -91,7 +87,6 @@ const CallSession: React.FC = () => {
       }
     }
 
-    // Cleanup on unmount
     return () => {
       if (closeTimerRef.current) {
         clearTimeout(closeTimerRef.current);
@@ -117,7 +112,7 @@ const CallSession: React.FC = () => {
     };
   }, [isConnected]);
 
-  // Handle navigation when session ends
+  // Navigate to report or home when session ends
   useEffect(() => {
     if (reportResult && sessionStarted) {
       if (reportResult.safe) {
@@ -188,13 +183,13 @@ const CallSession: React.FC = () => {
 
   return (
     <div className="h-[100dvh] bg-background flex flex-col relative max-w-lg mx-auto overflow-hidden">
-      {/* Animated background element */}
+
       <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[40%] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
       {riskData.risk >= 80 && (
         <div className="absolute top-0 left-0 w-full h-full bg-danger/5 animate-pulse pointer-events-none z-0" />
       )}
 
-      {/* Top Bar / Command Center */}
+      {/* Command Bar */}
       <div className="relative z-10 px-4 pt-6 pb-2">
         <div className="glass-card flex items-center justify-between p-3 px-5 mb-4 shadow-lg border-white/5">
           <div className="flex items-center gap-3">
@@ -220,18 +215,18 @@ const CallSession: React.FC = () => {
           </div>
         </div>
 
-        {/* Risk Gauge integrated smoothly into the flow */}
+        {/* Risk Gauge */}
         <RiskIndicator peakRiskScore={riskData.peakRiskScore} currentRiskScore={riskData.risk} />
       </div>
 
-      {/* Main Transcript Area */}
+      {/* Transcript */}
       <TranscriptFeed transcript={transcript} />
 
-      {/* Coaching Card Overlay */}
+      {/* Coaching Overlay */}
       <AnimatePresence>
         {showCard && displayCardData && (
           <CoachingCard 
-            key={displayCardData.signal} // Re-animates if signal changes
+            key={displayCardData.signal}
             risk={displayCardData.risk} 
             signal={displayCardData.signal} 
             coaching={displayCardData.coaching} 
@@ -240,7 +235,7 @@ const CallSession: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Bottom Control Bar */}
+      {/* Controls */}
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/90 to-transparent pt-12 z-40">
         <div className="glass-card-strong p-2 pr-6 rounded-full flex items-center justify-between shadow-2xl">
           

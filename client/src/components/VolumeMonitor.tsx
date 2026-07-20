@@ -6,7 +6,7 @@ interface VolumeMonitorProps {
 }
 
 const VolumeMonitor: React.FC<VolumeMonitorProps> = ({ isRecording }) => {
-  // We'll simulate 7 bars that animate randomly when recording
+  // 7 animated bars simulating a volume meter
   const bars = Array.from({ length: 7 });
 
   return (

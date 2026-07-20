@@ -42,21 +42,21 @@ const ReportView: React.FC = () => {
 
   const handleDownloadAndReport = async () => {
     setIsReporting(true);
-    // Generate PDF FIRST so the browser doesn't block the download due to async delay
+    // Generate PDF first — browser blocks downloads after async delays
     try {
       generatePDFReport(report);
     } catch (err) {
       console.error('Error generating PDF:', err);
     }
-    // Report to community DB
+
     await reportToCommunityDB(report.callerNumber, report.peakRiskScore);
-    // Remove loading state after a brief delay
+
     setTimeout(() => setIsReporting(false), 1500);
   };
 
   return (
     <div className="min-h-screen bg-background text-text p-4 pb-24 max-w-2xl mx-auto">
-      {/* Header */}
+
       <motion.div 
         initial={{ opacity: 0, scale: 0.9 }} 
         animate={{ opacity: 1, scale: 1 }} 
@@ -75,7 +75,7 @@ const ReportView: React.FC = () => {
         animate="show"
         className="space-y-4"
       >
-        {/* Quick Stats Grid */}
+        {/* Quick Stats */}
         <motion.div variants={itemVariants} className="grid grid-cols-2 gap-3">
           <div className="glass-card p-4 flex flex-col">
             <span className="text-white/40 text-[10px] uppercase tracking-wider mb-2 flex items-center gap-1">
@@ -91,7 +91,7 @@ const ReportView: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Summary Card */}
+        {/* Summary */}
         <motion.div variants={itemVariants} className="glass-card-strong p-5 relative overflow-hidden">
           <div className="absolute top-0 left-0 w-1 h-full bg-warning" />
           <div className="inline-block px-3 py-1 bg-warning/20 text-warning text-xs font-bold rounded-full uppercase tracking-wide mb-3">
@@ -162,7 +162,7 @@ const ReportView: React.FC = () => {
           </button>
         </motion.div>
         
-        {/* Back home */}
+
         <motion.div variants={itemVariants} className="text-center">
           <button 
             onClick={() => navigate('/')}

@@ -21,10 +21,9 @@ const executeWithFallback = async (options: any) => {
   let lastError;
   const now = Date.now();
 
-  // Filter out models that are currently on cooldown
   let modelsToTry = FALLBACK_MODELS.filter(model => !modelCooldowns[model] || now >= modelCooldowns[model]);
   
-  // If all models are on cooldown, ignore cooldowns and try all of them
+  // Fallback: try all models if every model is on cooldown
   if (modelsToTry.length === 0) {
     modelsToTry = FALLBACK_MODELS;
   }
@@ -115,11 +114,10 @@ const sanitizeTranscript = (text: string): string => {
 export const scoreRisk = async (transcript: string, lastCoaching: string = ''): Promise<RiskScore> => {
   try {
     const cleanTranscript = sanitizeTranscript(transcript);
-    // Extract the last 3 non-empty lines to focus the model's attention on the current state
+    // Focus on the last 3 transcript lines for scoring
     const transcriptLines = cleanTranscript.trim().split('\n').filter(line => line.trim().length > 0);
     const latestStatements = transcriptLines.slice(-3).join('\n');
 
-    // Get only the segment added in the current turn to prevent past context confusion
     const userContent = `LATEST SCAMMER STATEMENTS FOR EVALUATION:\n${latestStatements}${
       lastCoaching 
       ? `\n\nPREVIOUS COACHING PROVIDED: "${lastCoaching}"` 

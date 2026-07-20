@@ -85,14 +85,14 @@ const ConsentBanner: React.FC = () => {
 
   return (
     <div className="min-h-dvh relative flex flex-col items-center justify-center">
-      {/* Background */}
+
       <div className="animated-grid-bg" />
 
-      {/* Decorative gradient orbs */}
+
       <div className="fixed top-[10%] right-[-20%] w-[50vw] h-[50vw] rounded-full bg-primary/[0.03] blur-[80px] pointer-events-none" />
       <div className="fixed bottom-[10%] left-[-15%] w-[40vw] h-[40vw] rounded-full bg-primary/[0.04] blur-[60px] pointer-events-none" />
 
-      {/* Main card */}
+
       <motion.div
         variants={cardVariants}
         initial="initial"
@@ -100,14 +100,14 @@ const ConsentBanner: React.FC = () => {
         className="relative z-10 w-full max-w-lg mx-auto px-5 py-8"
       >
         <div className="glass-card-strong p-6 flex flex-col gap-5 gradient-border">
-          {/* ─── Header: Lock Icon + Title ─── */}
+          {/* ─── Header ─── */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
             className="flex flex-col items-center gap-3 pt-1"
           >
-            {/* Lock icon with glow */}
+
             <div className="relative">
               <div className="absolute inset-0 flex items-center justify-center">
                 <motion.div
@@ -183,7 +183,7 @@ const ConsentBanner: React.FC = () => {
             </p>
           </motion.div>
 
-          {/* ─── Custom Checkbox ─── */}
+          {/* ─── Consent Checkbox ─── */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
@@ -194,7 +194,7 @@ const ConsentBanner: React.FC = () => {
               onClick={toggleAgreed}
               className="w-full flex items-start gap-3 p-3 rounded-xl transition-all duration-200 hover:bg-white/[0.03] group text-left"
             >
-              {/* Checkbox visual */}
+
               <div
                 className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 mt-0.5 transition-all duration-200 ${
                   agreed
@@ -214,7 +214,7 @@ const ConsentBanner: React.FC = () => {
                 </motion.div>
               </div>
 
-              {/* Label */}
+
               <span
                 className={`text-sm leading-relaxed transition-colors duration-200 ${
                   agreed ? 'text-textMain' : 'text-textMain/60'

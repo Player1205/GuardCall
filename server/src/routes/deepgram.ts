@@ -30,7 +30,7 @@ router.get('/token', async (req: Request, res: Response, next: NextFunction): Pr
       path: '/v1/auth/grant',
       method: 'POST',
       headers: {
-        'Host': 'api.deepgram.com', // Crucial: ensure Deepgram knows which host we want
+        'Host': 'api.deepgram.com', // SNI host header required when using direct IP
         'Authorization': `Token ${apiKey}`,
         'Content-Type': 'application/json',
       }

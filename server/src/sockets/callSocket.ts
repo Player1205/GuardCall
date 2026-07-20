@@ -51,7 +51,7 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
     lastReceivedTranscript = newTranscript;
     rollingTranscript = newTranscript;
 
-    // Reset the turn timer because NEW words have arrived.
+    // Reset turn timer — new words arrived
     if (turnTimer) {
       clearTimeout(turnTimer);
     }
@@ -70,14 +70,14 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
         if (isScoring) return;
         isScoring = true;
         
-        // Reset turn start time since we just scored this chunk
+        // Reset turn timer after scoring
         turnStartTime = 0;
         lastScoredTranscript = rollingTranscript;
         
         try {
           const { risk, signal, phase, coaching } = await scoreRisk(rollingTranscript, sessionData!.lastCoachingSent || '');
 
-          // If the session ended while we were waiting for the AI response, safely abort
+          // Abort if session ended while awaiting AI response
           if (!sessionData) {
             return;
           }
@@ -103,15 +103,15 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
       const criticalKeywords = ['arrest', 'police', 'money', 'rupees', 'account', 'otp', 'password', 'transfer', 'security', 'cbi', 'customs', 'illegal', 'warrant'];
       const hasCriticalKeyword = criticalKeywords.some(kw => newText.includes(kw));
 
-      // 1. Universal Safety Net: Force a score if they've been speaking continuously for 1.5 seconds
+      // Force score after 1.5s of continuous speech
       if (turnStartTime > 0 && (now - turnStartTime > 1500) && !isScoring) {
         triggerScore();
       } 
-      // 2. Keyword Snapper: If a critical keyword is spoken, reduce the silence debounce to 0.8s
+      // Faster 0.8s debounce when critical keywords detected
       else if (hasCriticalKeyword && !isScoring) {
         turnTimer = setTimeout(triggerScore, 800);
       } 
-      // 3. Normal Debounce: Wait for 1.5 seconds of silence
+      // Default 1.5s silence debounce
       else {
         turnTimer = setTimeout(triggerScore, 1500);
       }
@@ -121,7 +121,6 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
   socket.on('session:end', async () => {
     logger.info('Session ended');
     
-    // Save a reference to sessionData before cleanup clears it
     const activeSessionData = sessionData;
     cleanup();
 

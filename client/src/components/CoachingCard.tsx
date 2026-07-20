@@ -10,7 +10,7 @@ interface CoachingCardProps {
 }
 
 const CoachingCard: React.FC<CoachingCardProps> = ({ risk, signal, coaching, onDismiss }) => {
-  // Determine tier styles
+
   let tierStyle = {
     cardBg: 'bg-warning/10 border-warning/30',
     headerBg: 'bg-warning',
@@ -63,13 +63,13 @@ const CoachingCard: React.FC<CoachingCardProps> = ({ risk, signal, coaching, onD
       </div>
 
       <div className="p-4 flex flex-col gap-3 overflow-y-auto custom-scrollbar">
-        {/* Signal Detected */}
+        {/* Detected Pattern */}
         <div className="text-sm">
           <span className="text-white/50 uppercase tracking-wider text-[10px] block mb-1">Detected Pattern</span>
           <p className="text-white/90 font-medium leading-snug">{signal}</p>
         </div>
 
-        {/* Coaching Action */}
+        {/* Recommended Action */}
         <div className="bg-black/30 rounded-xl p-4 border border-white/5 mt-1">
           <span className="text-white/50 uppercase tracking-wider text-[10px] block mb-2">Recommended Action</span>
           <p className="text-white text-lg font-semibold leading-relaxed">
@@ -77,7 +77,7 @@ const CoachingCard: React.FC<CoachingCardProps> = ({ risk, signal, coaching, onD
           </p>
         </div>
 
-        {/* Extreme danger warning */}
+        {/* Critical danger warning */}
         {risk >= 80 && (
           <motion.div 
             initial={{ opacity: 0 }}

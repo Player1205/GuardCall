@@ -9,15 +9,14 @@ interface RiskIndicatorProps {
 const RiskIndicator: React.FC<RiskIndicatorProps> = ({ peakRiskScore, currentRiskScore }) => {
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
-  // Risk score max is 100, we map it to 0-100% of the circle (0 dashoffset = full, circumference dashoffset = empty)
-  // Actually we want 75% of a circle to look like a speedometer gauge
+  // Map 0–100 risk to a 270° (75%) arc to create a speedometer gauge
   const gaugeLength = circumference * 0.75;
   const dashoffset = gaugeLength - (peakRiskScore / 100) * gaugeLength;
 
   const getColor = (score: number) => {
-    if (score >= 80) return '#E24B4A'; // Danger
-    if (score >= 40) return '#EF9F27'; // Warning
-    return '#1D9E75'; // Primary
+    if (score >= 80) return '#E24B4A';
+    if (score >= 40) return '#EF9F27';
+    return '#1D9E75';
   };
 
   const currentColor = getColor(peakRiskScore);
@@ -26,7 +25,7 @@ const RiskIndicator: React.FC<RiskIndicatorProps> = ({ peakRiskScore, currentRis
   return (
     <div className="flex flex-col items-center justify-center p-4 relative">
       <div className="relative flex items-center justify-center">
-        {/* Background track */}
+
         <svg className="w-24 h-24 transform -rotate-[135deg]" viewBox="0 0 100 100">
           <circle
             cx="50"
@@ -38,7 +37,7 @@ const RiskIndicator: React.FC<RiskIndicatorProps> = ({ peakRiskScore, currentRis
             strokeDasharray={`${gaugeLength} ${circumference}`}
             strokeLinecap="round"
           />
-          {/* Animated progress ring */}
+
           <motion.circle
             cx="50"
             cy="50"
@@ -57,7 +56,7 @@ const RiskIndicator: React.FC<RiskIndicatorProps> = ({ peakRiskScore, currentRis
           />
         </svg>
 
-        {/* Score Text in Center */}
+
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <motion.span 
             key={currentRiskScore}

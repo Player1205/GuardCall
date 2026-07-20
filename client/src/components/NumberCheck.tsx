@@ -66,7 +66,7 @@ function ParticlesBackground() {
           }}
         />
       ))}
-      {/* Gradient orbs */}
+
       <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] rounded-full bg-primary/[0.04] blur-[80px]" />
       <div className="absolute bottom-[-10%] right-[-10%] w-[50vw] h-[50vw] rounded-full bg-primary/[0.03] blur-[60px]" />
     </div>
@@ -160,7 +160,7 @@ const NumberCheck: React.FC = () => {
     navigate('/consent');
   }, [navigate]);
 
-  /* ─── Container animations ─── */
+  /* ─── Container Animations ─── */
   const containerVariants: import('framer-motion').Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -180,11 +180,11 @@ const NumberCheck: React.FC = () => {
 
   return (
     <div className="min-h-dvh relative flex flex-col items-center">
-      {/* Background layers */}
+
       <div className="animated-grid-bg" />
       <ParticlesBackground />
 
-      {/* Content */}
+
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -193,13 +193,13 @@ const NumberCheck: React.FC = () => {
       >
         {/* ─── Hero Section ─── */}
         <motion.div variants={itemVariants} className="flex flex-col items-center gap-3 pt-4">
-          {/* Animated shield */}
+
           <motion.div
             className="relative"
             animate={{ y: [0, -6, 0] }}
             transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
           >
-            {/* Glow rings */}
+
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="w-20 h-20 rounded-full bg-primary/10 animate-pulse-glow" />
             </div>
@@ -215,7 +215,7 @@ const NumberCheck: React.FC = () => {
             </div>
           </motion.div>
 
-          {/* App name */}
+
           <h1 className="text-4xl font-bold tracking-tight">
             <span className="bg-gradient-to-r from-primary via-primary-light to-emerald-300 bg-clip-text text-transparent">
               Guard
@@ -249,7 +249,7 @@ const NumberCheck: React.FC = () => {
           />
         </motion.div>
 
-        {/* ─── Phone Number Input Card ─── */}
+        {/* ─── Phone Input ─── */}
         <motion.div
           variants={itemVariants}
           className="w-full glass-card-strong p-5 gradient-border"
@@ -259,7 +259,7 @@ const NumberCheck: React.FC = () => {
               Enter the caller&apos;s number
             </label>
 
-            {/* Input row */}
+
             <div className="relative">
               <div className="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center pointer-events-none">
                 <Phone className="w-4 h-4 text-primary/60" />
@@ -297,7 +297,7 @@ const NumberCheck: React.FC = () => {
               />
             </div>
 
-            {/* Submit button */}
+
             <AnimatePresence mode="wait">
               {!warning && (
                 <motion.button
@@ -348,7 +348,7 @@ const NumberCheck: React.FC = () => {
               }}
             >
               <div className="rounded-2xl bg-[#1a1020] p-5 flex flex-col gap-4">
-                {/* Warning header */}
+
                 <div className="flex items-start gap-3">
                   <motion.div
                     animate={{ rotate: [0, -8, 8, -8, 0] }}
@@ -367,7 +367,7 @@ const NumberCheck: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Reports badge */}
+
                 <div className="flex items-center gap-2">
                   <div className="px-3 py-1 rounded-full bg-danger/15 border border-danger/20 text-danger text-xs font-semibold">
                     {warning.reportsCount} report{warning.reportsCount !== 1 ? 's' : ''}
@@ -375,7 +375,7 @@ const NumberCheck: React.FC = () => {
                   <span className="text-textMain/40 text-xs">from community members</span>
                 </div>
 
-                {/* Proceed button */}
+
                 <motion.button
                   onClick={handleProceed}
                   whileTap={{ scale: 0.97 }}

@@ -18,7 +18,6 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
 
   const startRecording = useCallback(async () => {
     try {
-      // Fetch temporary Deepgram token from our backend
       const response = await fetch(`${API_URL}/api/deepgram/token`);
       const data = await response.json();
       if (!data.token) throw new Error('Could not get Deepgram token');
@@ -36,10 +35,8 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
       setPermissionError(null);
       transcriptRef.current = '';
 
-      // Initialize v5 SDK Client with the temporary token
       const dgClient = new DeepgramClient({ accessToken: data.token });
       
-      // The connect method sets up the WebSocket connection configuration
       const dgConnection = await dgClient.listen.v1.connect({
         model: 'nova-2',
         language: 'hi',
@@ -58,7 +55,7 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
         mediaRecorderRef.current = mediaRecorder;
 
         mediaRecorder.ondataavailable = (event) => {
-          if (event.data.size > 0 && dgConnection.readyState === 1) { // 1 = OPEN
+          if (event.data.size > 0 && dgConnection.readyState === 1) {
             dgConnection.sendMedia(event.data);
           }
         };
@@ -80,11 +77,10 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
               transcriptRef.current = words.slice(words.length - 400).join(' ');
             }
             
-            // Forward the updated transcript to the backend for AI scoring
+            // Send updated transcript to backend for risk scoring
             if (socket) {
               socket.emit('transcript:update', transcriptRef.current);
             }
-            // Update UI locally
             setTranscript(transcriptRef.current);
           } else if (transcript) {
             // Show interim results on screen without emitting to backend

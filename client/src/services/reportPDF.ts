@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// Fix TS type for autoTable since it's a plugin
+// Extended jsPDF type to include autoTable plugin properties
 interface jsPDFWithPlugin extends jsPDF {
   lastAutoTable: { finalY: number };
 }
@@ -19,16 +19,16 @@ export interface ReportData {
 export const generatePDFReport = (reportData: ReportData) => {
   const doc = new jsPDF() as jsPDFWithPlugin;
   
-  // Page setup
+
   const pageWidth = doc.internal.pageSize.getWidth();
   let currentY = 20;
 
-  // Header Title
+
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
   doc.text("CYBER CRIME INCIDENT REPORT", pageWidth / 2, currentY, { align: "center" });
   
-  // Underline for title
+
   const textWidth = doc.getTextWidth("CYBER CRIME INCIDENT REPORT");
   doc.setLineWidth(0.5);
   doc.line((pageWidth - textWidth) / 2, currentY + 2, (pageWidth + textWidth) / 2, currentY + 2);
