@@ -65,7 +65,7 @@ This project is a **Monorepo**, meaning it holds both the Frontend (Client) and 
 
 * **The AI Engines**:
   * **Deepgram**: Converts the live audio into text incredibly fast.
-  * **Groq (Llama 3)**: Reads the text and decides if it is a scam.
+  * **Groq (Llama 3.3)**: Reads the text and decides if it is a scam (using fallback models if rate-limited).
 
 ### Folder Structure
 
@@ -137,3 +137,10 @@ npm run dev
 ```
 
 The app will now be running at `http://localhost:5173`. Open that link in your browser, and you are ready to use GuardCall!
+
+### 🔧 Troubleshooting & Windows Setup Notes
+
+* **Windows / Node >17 DNS Issues (ENOTFOUND)**:
+  Some local Windows development setups experience DNS resolution issues when making requests to localhost or external services. 
+  * The backend server automatically invokes `dns.setDefaultResultOrder('ipv4first')` to bypass these IPv6-first resolution quirks.
+  * The Deepgram token generator route implements a fallback manual DNS lookup (`dns.resolve('api.deepgram.com')`) with direct IP proxying and SNI Host header rewriting to guarantee connectivity if standard lookup fails.
