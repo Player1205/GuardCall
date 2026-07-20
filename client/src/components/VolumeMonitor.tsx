@@ -6,7 +6,12 @@ interface VolumeMonitorProps {
 }
 
 const VolumeMonitor: React.FC<VolumeMonitorProps> = ({ isRecording }) => {
-  // 7 animated bars simulating a volume meter
+  /**
+   * Volume Wave Generation:
+   * Iterates over an array of 7 elements to render vertical bars.
+   * Uses randomized Framer Motion scale heights (`Math.random() * 24 + 8`) and dynamic 
+   * opacity parameters to simulate an active microphone volume level indicator.
+   */
   const bars = Array.from({ length: 7 });
 
   return (

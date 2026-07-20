@@ -7,10 +7,18 @@ interface RiskIndicatorProps {
 }
 
 const RiskIndicator: React.FC<RiskIndicatorProps> = ({ peakRiskScore, currentRiskScore }) => {
+  // SVG Gauge Math:
+  // Circular perimeter is computed as 2 * pi * r (where r = 36).
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
-  // Map 0–100 risk to a 270° (75%) arc to create a speedometer gauge
+  
+  // We slice this to a 75% arc gauge to mimic an analog speedometer layout.
+  // The bottom 25% of the circle is left empty.
   const gaugeLength = circumference * 0.75;
+  
+  // `strokeDashoffset` is calculated dynamically to fill the gauge in reverse order.
+  // We subtract the percentage of the gauge length from the total gauge length.
+  // (100 - risk) / 100 * gaugeLength gives the remaining offset.
   const dashoffset = gaugeLength - (peakRiskScore / 100) * gaugeLength;
 
   const getColor = (score: number) => {

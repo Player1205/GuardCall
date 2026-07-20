@@ -9,14 +9,23 @@ interface TranscriptFeedProps {
 const TranscriptFeed: React.FC<TranscriptFeedProps> = ({ transcript }) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom whenever transcript updates
+  /**
+   * Automatic Scroll Adjustment:
+   * Keeps the live transcript view pinned to the bottom.
+   * By setting `scrollTop` to the `scrollHeight`, it continuously scrolls the latest transcribed text into view.
+   */
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [transcript]);
 
-  // Split transcript into sentences for per-phrase animation
+  /**
+   * Phrase Splitting using Lookahead Regex:
+   * `/(?<=[.!?])\s+/` splits the text stream into individual sentences *without* deleting the punctuation marks.
+   * This granular segmentation enables Framer Motion to apply staggered transition enter animations
+   * on individual sentences rather than redrawing or jarring the entire text block on every keystroke/word update.
+   */
   const phrases = transcript.split(/(?<=[.!?])\s+/).filter(p => p.trim().length > 0);
 
   return (

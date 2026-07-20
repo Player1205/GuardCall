@@ -21,6 +21,9 @@ export const generatePDFReport = (reportData: ReportData) => {
   
 
   const pageWidth = doc.internal.pageSize.getWidth();
+  // Coordinate Tracking:
+  // PDF generation operates on a 2D canvas where Y flows downwards.
+  // We use `currentY` to track vertical layout offsets manually, pushing elements down the page sequentially.
   let currentY = 20;
 
 
@@ -58,6 +61,10 @@ export const generatePDFReport = (reportData: ReportData) => {
     ],
   });
 
+  // autoTable finalY Hook:
+  // autoTable draws tables dynamically based on content length.
+  // We extract the exact vertical height of the rendered table (`lastAutoTable.finalY`) 
+  // to perfectly shift the `currentY` offset for the next element (adding 10px padding).
   currentY = (doc as any).lastAutoTable?.finalY ? (doc as any).lastAutoTable.finalY + 10 : currentY + 40;
 
   // Red Flags Detected Table
@@ -93,7 +100,10 @@ export const generatePDFReport = (reportData: ReportData) => {
   doc.text(summaryLines, 14, currentY);
   currentY += (summaryLines.length * 5) + 10;
 
-  // Check Page break before FIR
+  // Pagination Flow - Check Page break before FIR:
+  // jsPDF does not auto-wrap elements onto new pages unless instructed.
+  // If the vertical offset exceeds 230 points (near the bottom margin), we inject a new blank page
+  // and reset `currentY` to the top margin (20) to prevent text clipping.
   if (currentY > 230) {
     doc.addPage();
     currentY = 20;
@@ -131,7 +141,9 @@ export const generatePDFReport = (reportData: ReportData) => {
     }
   }
 
-  // Footer on all pages
+  // Footer Generation:
+  // Loops through every generated page retrospectively (`doc.setPage(i)`) 
+  // to stamp a uniform footer containing the app name and current page number.
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);

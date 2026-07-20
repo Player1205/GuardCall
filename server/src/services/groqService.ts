@@ -14,9 +14,20 @@ const FALLBACK_MODELS = [
   'gemma2-9b-it'
 ];
 
+/**
+ * ─── RATE LIMITING COOLDOWNS & FALLBACK MODELS ───
+ * Maintains records of failed models (specifically 429 rate limits). 
+ * When a rate limit is triggered, stores a timestamp 5 minutes into the future to block 
+ * further attempts until the limit expires.
+ */
 const modelCooldowns: Record<string, number> = {};
-const COOLDOWN_DURATION = 5 * 60 * 1000; // 5 minutes cooldown
+const COOLDOWN_DURATION = 5 * 60 * 1000;
 
+/**
+ * Executes a Groq completion request utilizing a sequential fallback loop.
+ * It tries each available model in order. If all are on cooldown, it falls back
+ * to attempting all models again.
+ */
 const executeWithFallback = async (options: any) => {
   let lastError;
   const now = Date.now();
@@ -52,6 +63,14 @@ const executeWithFallback = async (options: any) => {
   throw lastError;
 };
 
+/**
+ * ─── LLM SCAM DETECTION INSTRUCTIONS PROMPT ───
+ * Contains the 8 critical rules of scam detection governing the LLM:
+ * - Context matching (only react to active threats)
+ * - Phase priority tracking (demand > intimidation > allegation > intro)
+ * - Anti-hallucination guardrails for user documents
+ * - Hinglish script parsing rules based on a 90%+ Devanagari threshold
+ */
 const SCAM_DETECTION_SYSTEM_PROMPT = `You are a real-time scam detection AI for India. 
 Analyze this phone call transcript and detect crime patterns.
 
@@ -93,6 +112,11 @@ Examples of Coaching (For Reference only, do NOT copy words blindly):
 - Intimidation: "Digital arrest is illegal in India. Send your officers to my address, I'll meet them directly."
 - Demand (Money): "I'm not transferring any money. I will verify this with my bank branch manager."`;
 
+/**
+ * ─── STRUCTURAL JSON VALIDATION SCHEMAS ───
+ * Zod parser schemas that enforce type safety and strict structural JSON formats.
+ * `.catch()` routines provide safe defaults when the LLM outputs malformed properties.
+ */
 const RiskScoreSchema = z.object({
   thought: z.string().catch(''),
   risk: z.number().catch(0),

@@ -42,7 +42,10 @@ const ReportView: React.FC = () => {
 
   const handleDownloadAndReport = async () => {
     setIsReporting(true);
-    // Generate PDF first — browser blocks downloads after async delays
+    // PDF Generation and Sanchar Saathi Integration:
+    // Browser security restrictions block programmatic file downloads if they occur after an asynchronous delay
+    // (like an API call). Therefore, `generatePDFReport` MUST execute synchronously in the UI thread immediately
+    // after the user click event, *before* we await the async database post (`reportToCommunityDB`).
     try {
       generatePDFReport(report);
     } catch (err) {
@@ -122,6 +125,11 @@ const ReportView: React.FC = () => {
             <div className="bg-[#09121c] border border-white/5 rounded-xl p-5 text-sm text-white/60 font-mono leading-relaxed whitespace-pre-wrap selection:bg-primary/30">
               {report.formalComplaintText}
             </div>
+            {/*
+             * Formal Police Complaint Action:
+             * Copies the LLM-generated formal complaint directly to the user's system clipboard using the
+             * `navigator.clipboard` API to facilitate easy pasting into official government portals.
+             */}
             <button 
               onClick={handleCopyFIR}
               className="absolute top-3 right-3 p-2 bg-white/10 hover:bg-white/20 rounded-lg backdrop-blur-md transition-all text-white"
@@ -150,7 +158,8 @@ const ReportView: React.FC = () => {
           <button 
             onClick={() => {
               handleCopyFIR();
-              // Small delay to let user see the copy success before switching tabs
+              // Standard browser tabs are launched to redirect victims to the government cybercrime reporting portal (Chakshu).
+              // We introduce a small artificial delay (400ms) to allow the copy success UI state to render before the browser switches tabs.
               setTimeout(() => {
                 window.open('https://sancharsaathi.gov.in/sfc/Home/sfc-complaint.jsp', '_blank');
               }, 400);

@@ -21,6 +21,12 @@ interface InfoCardProps {
   accentColor: string;
 }
 
+/**
+ * Represents a structured layout for displaying key privacy guarantees.
+ * Property bindings inject specific icons and texts.
+ * Custom opacity styling (`accentColor` appended with `15` for 15% hex opacity)
+ * is applied to the background to create a subtle tinted background matching the icon color.
+ */
 function InfoCard({ icon, title, description, delay, accentColor }: InfoCardProps) {
   return (
     <motion.div
@@ -63,7 +69,13 @@ const ConsentBanner: React.FC = () => {
     setAgreed((prev) => !prev);
   }, []);
 
-  /* ─── Animation variants ─── */
+  /**
+   * Framer Motion transition animations:
+   * Defines a `spring` physics model to scale and translate the main consent card into view.
+   * - stiffness: 260 (determines the tension, making it snap into place quickly)
+   * - damping: 24 (controls the friction to prevent excessive bouncing)
+   * - mass: 0.8 (lightens the object for a faster, snappier feel)
+   */
   const cardVariants: import('framer-motion').Variants = {
     initial: {
       opacity: 0,
@@ -163,6 +175,13 @@ const ConsentBanner: React.FC = () => {
           </div>
 
           {/* ─── Legal Text Box ─── */}
+          {/*
+           * Legal Notice:
+           * Explains the legal basis justifying call monitoring for personal security.
+           * Under the Information Technology Act, 2000 & Indian Telegraph Act, recording a call
+           * you are a party to is legally permissible when done for personal safety and investigation purposes,
+           * provided it is not misused.
+           */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -184,6 +203,11 @@ const ConsentBanner: React.FC = () => {
           </motion.div>
 
           {/* ─── Consent Checkbox ─── */}
+          {/*
+           * Checkbox toggles and active state mapping:
+           * Maps the `agreed` boolean state to conditional CSS classes, driving background colors,
+           * border glow, and text opacities. Also coordinates the spring-based checkmark scale animation.
+           */}
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}

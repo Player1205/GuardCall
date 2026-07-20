@@ -9,7 +9,13 @@ import RiskIndicator from './RiskIndicator';
 import CoachingCard from './CoachingCard';
 import VolumeMonitor from './VolumeMonitor';
 
-// Jaccard similarity — used to detect when coaching text changes meaningfully
+/**
+ * Calculates the Jaccard similarity index between two strings.
+ * Jaccard similarity is the size of the intersection divided by the size of the union of two sets.
+ * Here, it extracts words via lowercase regex matching boundaries (`\b\w+\b`).
+ * This is used to detect when LLM-generated coaching text changes context meaningfully,
+ * rather than triggering a new card for slight phrasing updates or minor corrections.
+ */
 const calculateSimilarity = (str1: string, str2: string) => {
   const getWords = (s: string) => new Set(s.toLowerCase().match(/\b\w+\b/g) || []);
   const set1 = getWords(str1);
@@ -45,6 +51,11 @@ const CallSession: React.FC = () => {
   const closeTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastUpdateTimeRef = React.useRef<number>(0);
 
+  /**
+   * Evaluates active threat detection and coordinates coaching card updates.
+   * Debounces close events using a 5-second lock (via closeTimerRef) to prevent 
+   * rapid toggle flashes when the risk score briefly dips below the threshold.
+   */
   useEffect(() => {
     const currentCard = displayCardDataRef.current;
 
@@ -59,7 +70,9 @@ const CallSession: React.FC = () => {
 
       let isSameContext = false;
       if (currentCard) {
-        // Consider it the same context if the phase (motive) is identical OR if the text is 80% similar
+        // Determine if the incoming threat belongs to the same logical context.
+        // We consider it the same context if the phase identifier (motive) is identical,
+        // OR if the text similarity threshold exceeds 80% (0.80).
         const similarity = calculateSimilarity(currentCard.coaching, riskData.coaching);
         isSameContext = (currentCard.phase === riskData.phase) || (similarity > 0.80);
       }
@@ -99,7 +112,11 @@ const CallSession: React.FC = () => {
     callbacksRef.current = { startSession, endSession };
   }, [startSession, endSession]);
 
-  // Start session only when socket connects
+  /**
+   * Manages the Socket.IO lifecycle and connection bindings.
+   * Ensures the session starts only when a secure connection is fully established,
+   * and guarantees cleanup (endSession) when the component unmounts or disconnects.
+   */
   useEffect(() => {
     if (isConnected) {
       callbacksRef.current.startSession();
@@ -184,12 +201,14 @@ const CallSession: React.FC = () => {
   return (
     <div className="h-[100dvh] bg-background flex flex-col relative max-w-lg mx-auto overflow-hidden">
 
+      {/* --- Main Layout Flow --- */}
+      {/* Dynamic background glow indicating active threat level */}
       <div className="absolute top-[-20%] left-[-10%] w-[120%] h-[40%] bg-primary/5 rounded-full blur-[100px] pointer-events-none" />
       {riskData.risk >= 80 && (
         <div className="absolute top-0 left-0 w-full h-full bg-danger/5 animate-pulse pointer-events-none z-0" />
       )}
 
-      {/* Command Bar */}
+      {/* --- Command Bar Layout --- */}
       <div className="relative z-10 px-4 pt-6 pb-2">
         <div className="glass-card flex items-center justify-between p-3 px-5 mb-4 shadow-lg border-white/5">
           <div className="flex items-center gap-3">
@@ -215,11 +234,13 @@ const CallSession: React.FC = () => {
           </div>
         </div>
 
-        {/* Risk Gauge */}
+        {/* --- Risk Gauge Embedding --- */}
+        {/* Visualizes the current and peak threat analysis using dynamic SVG arcs */}
         <RiskIndicator peakRiskScore={riskData.peakRiskScore} currentRiskScore={riskData.risk} />
       </div>
 
-      {/* Transcript */}
+      {/* --- Transcript Feed Binding --- */}
+      {/* Streams live segmented utterances captured from the user's microphone */}
       <TranscriptFeed transcript={transcript} />
 
       {/* Coaching Overlay */}
@@ -235,7 +256,8 @@ const CallSession: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Controls */}
+      {/* --- Bottom Control Bar Action Mapping --- */}
+      {/* Provides unified access to session termination and system status indicators */}
       <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/90 to-transparent pt-12 z-40">
         <div className="glass-card-strong p-2 pr-6 rounded-full flex items-center justify-between shadow-2xl">
           

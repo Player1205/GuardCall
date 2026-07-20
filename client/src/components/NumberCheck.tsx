@@ -28,6 +28,13 @@ interface Particle {
   delay: number;
 }
 
+/**
+ * Generates a dynamic, floating mesh background effect using animated particles.
+ * Utilizes `useMemo` to construct a fixed list of 28 randomized particle objects just once,
+ * generating static properties (x, y coordinates, size, animation duration, and delays) so they 
+ * remain perfectly stable across component re-renders (like when the user types in the input).
+ * Framer Motion then loops their vertical translation (`y: [0, -30, 0]`) infinitely.
+ */
 function ParticlesBackground() {
   const particles: Particle[] = useMemo(
     () =>
@@ -140,6 +147,9 @@ const NumberCheck: React.FC = () => {
 
       setLoading(true);
       try {
+        // Database Verification Request:
+        // Cross-checks the cleaned number against the community-driven reported numbers database.
+        // If flagged, it sets a localized warning state before proceeding to the consent page.
         const result = await checkCommunityDB(callerNumber);
         if (result.flagged) {
           setWarning({
@@ -272,9 +282,13 @@ const NumberCheck: React.FC = () => {
                 onChange={(e) => {
                   const val = e.target.value;
                   const hasPlus = val.startsWith('+');
+                  // Phone Input Parser: 
+                  // Clean the string by removing all non-digit characters to standardize parsing
                   let digits = val.replace(/\D/g, '');
                   
                   let formatted = '';
+                  // Prefix detection for standard +91 country formatting.
+                  // Dynamically inserts spaces for legibility (e.g., +91 98765 43210)
                   if (hasPlus && digits.startsWith('91')) {
                     const country = digits.slice(0, 2);
                     const p1 = digits.slice(2, 7);
@@ -334,6 +348,11 @@ const NumberCheck: React.FC = () => {
         </motion.div>
 
         {/* ─── Community Warning Card ─── */}
+        {/* 
+         * Warning Cards rendering:
+         * Triggered if the phone number check flags previous community reports.
+         * Alerts the user of historical suspicious activity but provides an override to continue anyway.
+         */}
         <AnimatePresence>
           {warning && (
             <motion.div

@@ -6,7 +6,11 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
 
-// Fix for Node.js >17 undici fetch ENOTFOUND issues with IPv6
+/**
+ * ─── IPv6 RESOLUTION FIX ───
+ * Forces Node.js to resolve hostname mappings to IPv4 addresses first.
+ * Bypasses network lookup failures (ENOTFOUND) common in Windows/Node.js undici fetch routines.
+ */
 dns.setDefaultResultOrder('ipv4first');
 import rateLimit from 'express-rate-limit';
 import connectDB from './config/db.js';
@@ -25,17 +29,24 @@ export const app: Express = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
+    // Defines allowed origins for Socket.io cross-origin resource sharing
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
     methods: ['GET', 'POST']
   }
 });
 
-// Middleware
+// ─── EXPRESS MIDDLEWARE SETUP ───
+
+// Helmet adds Express security headers to protect against common web vulnerabilities
 app.use(helmet());
 
+/**
+ * ─── RATE LIMITER SETUP ───
+ * Limits incoming requests to prevent DDoS and brute-force attacks.
+ */
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // Max 100 requests per window
+  windowMs: 15 * 60 * 1000,
+  max: 100,
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -62,7 +73,11 @@ io.on('connection', (socket: Socket) => {
 
 const PORT = process.env.PORT || 3001;
 
-// Connect to DB and start server
+/**
+ * ─── STARTUP DATABASE HANDLERS ───
+ * Initializes the MongoDB connection before starting the Express server to ensure
+ * database readiness. Catches connection errors to prevent silent failures.
+ */
 if (process.env.NODE_ENV !== 'test') {
   connectDB().then(() => {
     server.listen(PORT, () => {

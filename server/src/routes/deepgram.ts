@@ -13,8 +13,12 @@ router.get('/token', async (req: Request, res: Response, next: NextFunction): Pr
       return;
     }
 
-    // Bypass intermittent ENOTFOUND DNS issues on Windows/Node by resolving manually
-    let targetIp = '208.184.56.200'; // Hardcoded fallback IP for api.deepgram.com
+    /**
+     * ─── MANUAL DNS RESOLUTION PROXYING ───
+     * Manually resolves the hostname (dns.resolve) to bypass intermittent DNS lookup 
+     * limits and ENOTFOUND issues common on local/Windows environments.
+     */
+    let targetIp = '208.184.56.200';
     try {
       const addresses = await dns.resolve('api.deepgram.com');
       if (addresses && addresses.length > 0) {
@@ -24,13 +28,19 @@ router.get('/token', async (req: Request, res: Response, next: NextFunction): Pr
       logger.warn('DNS resolution for api.deepgram.com failed, using fallback IP.');
     }
 
+    /**
+     * ─── HTTPS OPTIONS & SNI HOST OVERRIDE ───
+     * Constructs the request targeting the resolved direct IP.
+     * Crucially overrides standard HTTP SNI Host headers (Host: api.deepgram.com) 
+     * to allow Deepgram to authenticate request signatures properly despite using a direct IP.
+     */
     const options = {
       hostname: targetIp,
       port: 443,
       path: '/v1/auth/grant',
       method: 'POST',
       headers: {
-        'Host': 'api.deepgram.com', // SNI host header required when using direct IP
+        'Host': 'api.deepgram.com',
         'Authorization': `Token ${apiKey}`,
         'Content-Type': 'application/json',
       }

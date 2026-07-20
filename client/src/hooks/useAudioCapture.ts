@@ -18,10 +18,17 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
 
   const startRecording = useCallback(async () => {
     try {
+      // Deepgram WebSocket Connectivity:
+      // To secure API credentials, temporary JWT access tokens are retrieved from our proxy backend.
+      // The browser never exposes the permanent Deepgram API key.
       const response = await fetch(`${API_URL}/api/deepgram/token`);
       const data = await response.json();
       if (!data.token) throw new Error('Could not get Deepgram token');
 
+      // Microphone Capture Configuration:
+      // Uses the browser's `getUserMedia` API to capture hardware microphone input.
+      // Echo-cancellation and noise-suppression are explicitly disabled to pass raw ambient audio
+      // to Deepgram for better multi-speaker background parsing, while keeping auto-gain control to normalize volume.
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: false,
@@ -37,6 +44,9 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
 
       const dgClient = new DeepgramClient({ accessToken: data.token });
       
+      // Deepgram Listen Connection Configuration:
+      // Configures the live transcription model. We use the advanced `nova-2` model tailored for Hindi/English 
+      // (`hi` language script). `interim_results` are enabled to provide immediate streaming feedback before the sentence ends.
       const dgConnection = await dgClient.listen.v1.connect({
         model: 'nova-2',
         language: 'hi',
@@ -60,7 +70,9 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
           }
         };
 
-        // Emit chunks every 250ms for near-real-time streaming
+        // 250ms Interval Recording Buffer:
+        // We configure the MediaRecorder to slice and emit WebM/Opus audio blobs every 250 milliseconds.
+        // This frequent packetization feeds the live stream aggressively to achieve ultra-low latency transcription.
         mediaRecorder.start(250);
         setIsRecording(true);
       });
@@ -71,7 +83,10 @@ export const useAudioCapture = (socket: Socket | null, setTranscript: (transcrip
           if (transcript && received.is_final) {
             transcriptRef.current += transcript + ' ';
             
-            // Keep a rolling window of max 400 words
+            // Rolling Word Window Slicing:
+            // LLMs have token limits and processing long transcripts causes latency spikes.
+            // We maintain a rolling buffer of exactly the last 400 words. This keeps the prompt size optimal
+            // for the risk analysis engine while maintaining enough context to detect long-con scams.
             const words = transcriptRef.current.split(' ');
             if (words.length > 400) {
               transcriptRef.current = words.slice(words.length - 400).join(' ');

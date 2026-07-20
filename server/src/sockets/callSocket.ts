@@ -103,21 +103,34 @@ export const setupCallSocket = (socket: Socket, io: Server) => {
       const criticalKeywords = ['arrest', 'police', 'money', 'rupees', 'account', 'otp', 'password', 'transfer', 'security', 'cbi', 'customs', 'illegal', 'warrant'];
       const hasCriticalKeyword = criticalKeywords.some(kw => newText.includes(kw));
 
-      // Force score after 1.5s of continuous speech
+      /**
+       * ─── TURN DETECTION & SCORING DEBOUNCE LOGIC ───
+       * Implements a three-stage debounce logic for transcript scoring:
+       * 1. Universal Safety Net: If speaking duration exceeds 1.5 seconds, force prompt processing 
+       *    to prevent huge context delay.
+       * 2. Keyword Snapper: If a critical keyword ('arrest', 'police', 'money', etc.) is matched, 
+       *    drop silence debounce down to 0.8 seconds to alert the victim immediately.
+       * 3. Normal Debounce: Else, wait for a 1.5-second silence interval before invoking the scoring API.
+       */
       if (turnStartTime > 0 && (now - turnStartTime > 1500) && !isScoring) {
         triggerScore();
       } 
-      // Faster 0.8s debounce when critical keywords detected
       else if (hasCriticalKeyword && !isScoring) {
         turnTimer = setTimeout(triggerScore, 800);
       } 
-      // Default 1.5s silence debounce
       else {
         turnTimer = setTimeout(triggerScore, 1500);
       }
     }
   });
 
+  /**
+   * ─── SESSION FINALIZATION LOGIC ───
+   * When a session ends securely or due to disconnect:
+   * 1. Executes PII scrubbing on the transcript to redact sensitive data.
+   * 2. Compiles a formal complaint report via Groq LLM models.
+   * 3. Writes the compiled records and final peak risk scores to Mongoose DB tables.
+   */
   socket.on('session:end', async () => {
     logger.info('Session ended');
     

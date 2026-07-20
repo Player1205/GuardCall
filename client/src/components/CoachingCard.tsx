@@ -11,6 +11,14 @@ interface CoachingCardProps {
 
 const CoachingCard: React.FC<CoachingCardProps> = ({ risk, signal, coaching, onDismiss }) => {
 
+  /**
+   * Tier Style Classification:
+   * Maps the current numeric risk score to specific visual warning levels:
+   * - Danger (>= 80): Uses deep reds (`bg-danger`), large glowing shadows, and the ShieldAlert icon.
+   * - Suspicious (>= 60): Uses orange colors and medium glow.
+   * - Caution (< 60): Uses yellow/warning styles.
+   * Tailwind classes are dynamically injected to adjust background colors, text colors, and glowing shadow variants.
+   */
   let tierStyle = {
     cardBg: 'bg-warning/10 border-warning/30',
     headerBg: 'bg-warning',
@@ -45,6 +53,12 @@ const CoachingCard: React.FC<CoachingCardProps> = ({ risk, signal, coaching, onD
       initial={{ opacity: 0, y: 50, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: 20, scale: 0.95 }}
+      /**
+       * Framer Motion Configuration:
+       * Defines a `spring` physics-based animation for a smooth slide-up transition overlay.
+       * - stiffness: 300 (determines the tension of the spring, higher = faster snap)
+       * - damping: 25 (determines the friction, reducing bounce and smoothing the end of the motion)
+       */
       transition={{ type: "spring", stiffness: 300, damping: 25 }}
       className={`absolute bottom-[100px] left-4 right-4 z-50 rounded-2xl border backdrop-blur-xl max-h-[calc(100dvh-180px)] flex flex-col overflow-hidden ${tierStyle.cardBg} ${tierStyle.glow}`}
     >
