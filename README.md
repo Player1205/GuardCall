@@ -12,7 +12,14 @@
     <a href="#security--privacy">Security</a> •
     <a href="#getting-started">Getting Started</a>
   </p>
+
+  <p align="center">
+    <a href="https://drive.google.com/file/d/1a8MHokwTE3m3TiBYEquE3XDd3xWXQ0Bf/view?usp=drivesdk" target="_blank">
+      <img src="https://img.shields.io/badge/🎥%20Watch%20Explanatory%20Video-Play%20Demo%20▶️-red?style=for-the-badge&logo=google-drive&logoColor=white" alt="Watch Explanatory Video" />
+    </a>
+  </p>
 </div>
+
 
 ---
 
