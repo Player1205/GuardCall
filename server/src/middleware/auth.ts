@@ -17,7 +17,10 @@ export const protect = async (req: AuthRequest, res: Response, next: NextFunctio
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     try {
       token = req.headers.authorization.split(' ')[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'supersecretjwtkey') as JwtPayload;
+      if (!process.env.JWT_SECRET) {
+        throw new Error('JWT_SECRET environment variable is not set');
+      }
+      const decoded = jwt.verify(token, process.env.JWT_SECRET) as JwtPayload;
 
       req.user = await User.findById(decoded.id).select('-password');
       return next();

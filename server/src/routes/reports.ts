@@ -1,8 +1,26 @@
 import express, { Response, NextFunction } from 'express';
+import { z } from 'zod';
 import Report from '../models/Report.js';
 import { protect, AuthRequest } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
+
+const createReportSchema = z.object({
+  sessionId: z.string().min(1, 'Session ID is required'),
+  callerNumber: z.string().min(10, 'Invalid phone number'),
+  summary: z.string().min(1, 'Summary is required'),
+  scamType: z.string().min(1, 'Scam type is required'),
+  redFlags: z.array(z.string()).default([]),
+  psychologicalTactics: z.array(z.string()).default([]),
+  evidenceLog: z.array(z.object({
+    time: z.string(),
+    event: z.string()
+  })).default([]),
+  recommendedAction: z.string().optional(),
+  formalComplaintText: z.string().optional(),
+  peakRiskScore: z.number().min(0).max(100),
+}).strip();
 
 router.get('/:sessionId', protect, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -26,7 +44,7 @@ router.get('/:sessionId', protect, async (req: AuthRequest, res: Response, next:
   }
 });
 
-router.post('/', protect, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+router.post('/', protect, validate(createReportSchema), async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401);

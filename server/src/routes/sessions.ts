@@ -1,10 +1,17 @@
 import express, { Response, NextFunction } from 'express';
+import { z } from 'zod';
 import CallSession from '../models/CallSession.js';
 import { protect, AuthRequest } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
-router.post('/', protect, async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+const createSessionSchema = z.object({
+  sessionId: z.string().min(1, 'Session ID is required'),
+  callerNumber: z.string().min(10, 'Invalid phone number'),
+});
+
+router.post('/', protect, validate(createSessionSchema), async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
   try {
     if (!req.user) {
       res.status(401);

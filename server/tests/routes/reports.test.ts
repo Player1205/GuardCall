@@ -69,7 +69,7 @@ describe('Reports Routes', () => {
         .set('Authorization', `Bearer ${token}`)
         .send({
           sessionId: 'session_post_123',
-          callerNumber: '111',
+          callerNumber: '1112223333',
           summary: 'post',
           scamType: 'post',
           redFlags: [],

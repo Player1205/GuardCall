@@ -1,10 +1,30 @@
 import express, { Request, Response, NextFunction } from 'express';
+import rateLimit from 'express-rate-limit';
+import { z } from 'zod';
 import CommunityReport from '../models/CommunityReport.js';
 import { protect, AuthRequest } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
-router.get('/check/:number', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+/**
+ * ─── COMMUNITY CHECK RATE LIMITER ───
+ * Stricter per-IP rate limit to prevent phone number enumeration attacks.
+ */
+const checkLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { status: 'error', message: 'Too many lookup requests, please try again later.' }
+});
+
+const communityReportSchema = z.object({
+  callerNumber: z.string().min(10, 'Invalid phone number'),
+  riskScore: z.number().min(0).max(100),
+});
+
+router.get('/check/:number', checkLimiter, async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { number } = req.params;
     const report = await CommunityReport.findOne({ callerNumber: number });
@@ -24,7 +44,7 @@ router.get('/check/:number', async (req: Request, res: Response, next: NextFunct
   }
 });
 
-router.post('/', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/', validate(communityReportSchema), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { callerNumber, riskScore } = req.body;
     

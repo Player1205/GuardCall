@@ -1,17 +1,37 @@
 import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import { z } from 'zod';
 import User from '../models/User.js';
 import { protect, AuthRequest } from '../middleware/auth.js';
+import { validate } from '../middleware/validate.js';
 
 const router = express.Router();
 
+const getJwtSecret = (): string => {
+  if (!process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET environment variable is not set');
+  }
+  return process.env.JWT_SECRET;
+};
+
 const generateToken = (id: any) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET || 'supersecretjwtkey', {
+  return jwt.sign({ id }, getJwtSecret(), {
     expiresIn: '30d',
   });
 };
 
-router.post('/register', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+const registerSchema = z.object({
+  name: z.string().min(1, 'Name is required'),
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+});
+
+const loginSchema = z.object({
+  email: z.string().email('Invalid email address'),
+  password: z.string().min(1, 'Password is required'),
+});
+
+router.post('/register', validate(registerSchema), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { name, email, password } = req.body;
     const userExists = await User.findOne({ email });
@@ -39,7 +59,7 @@ router.post('/register', async (req: Request, res: Response, next: NextFunction)
   }
 });
 
-router.post('/login', async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+router.post('/login', validate(loginSchema), async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
