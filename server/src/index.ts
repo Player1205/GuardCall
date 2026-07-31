@@ -66,26 +66,7 @@ app.use('/api/deepgram', deepgramRoutes);
 // Error Handler
 app.use(errorHandler);
 
-/**
- * ─── SOCKET.IO JWT AUTHENTICATION ───
- * Verifies JWT tokens on WebSocket connections to prevent unauthorized access.
- * Tokens are passed via the handshake auth object from the client.
- */
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-  if (!token) {
-    return next(new Error('Authentication error: No token provided'));
-  }
-  try {
-    if (!process.env.JWT_SECRET) {
-      return next(new Error('Server configuration error'));
-    }
-    jwt.verify(token, process.env.JWT_SECRET);
-    next();
-  } catch (err) {
-    next(new Error('Authentication error: Invalid token'));
-  }
-});
+
 
 // Socket.IO
 io.on('connection', (socket: Socket) => {

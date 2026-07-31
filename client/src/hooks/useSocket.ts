@@ -11,11 +11,7 @@ export const useSocket = () => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
 
   useEffect(() => {
-    const newSocket = io(SOCKET_URL, {
-      auth: {
-        token: localStorage.getItem('guardcall_token') || ''
-      }
-    });
+    const newSocket = io(SOCKET_URL);
     socketRef.current = newSocket;
     setSocket(newSocket);
 
