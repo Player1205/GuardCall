@@ -4,6 +4,9 @@ import { beforeAll, afterAll, afterEach } from 'vitest';
 
 let mongoServer: MongoMemoryServer;
 
+// Set a dummy JWT_SECRET for tests to satisfy the auth middleware's strict requirement
+process.env.JWT_SECRET = 'test-secret-key';
+
 beforeAll(async () => {
   mongoServer = await MongoMemoryServer.create();
   const uri = mongoServer.getUri();
