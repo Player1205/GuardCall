@@ -55,7 +55,9 @@ export const useSession = () => {
     setTranscript('');
     setRiskData({ risk: 0, signal: '', phase: 'intro', coaching: '', peakRiskScore: 0 });
     
-    const userId = "anonymous-or-logged-in-user-id"; 
+    // Retrieve the authenticated user ID from localStorage, falling back to anonymous
+    const storedUser = localStorage.getItem('guardcall_user');
+    const userId = storedUser ? JSON.parse(storedUser)?._id || 'anonymous' : 'anonymous';
     
     if (socket) {
       socket.emit('session:start', { callerNumber, sessionId: newSessionId, userId });

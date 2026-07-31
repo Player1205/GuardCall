@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, Variants } from 'framer-motion';
 import { ShieldAlert, FileDown, ExternalLink, AlertTriangle, Hash, Activity, Home, Copy, CheckCircle } from 'lucide-react';
@@ -12,11 +12,17 @@ const ReportView: React.FC = () => {
   const [copied, setCopied] = React.useState(false);
   const [isReporting, setIsReporting] = React.useState(false);
 
+  useEffect(() => {
+    if (!report) {
+      const timer = setTimeout(() => navigate('/'), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [report, navigate]);
+
   if (!report) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <p className="text-white/50">No report data found. Returning home...</p>
-        {setTimeout(() => navigate('/'), 2000) && null}
       </div>
     );
   }

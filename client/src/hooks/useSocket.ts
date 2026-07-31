@@ -7,25 +7,30 @@ const SOCKET_URL = import.meta.env.VITE_API_URL
 
 export const useSocket = () => {
   const socketRef = useRef<Socket | null>(null);
+  const [socket, setSocket] = useState<Socket | null>(null);
   const [isConnected, setIsConnected] = useState<boolean>(false);
 
   useEffect(() => {
-    socketRef.current = io(SOCKET_URL);
+    const newSocket = io(SOCKET_URL, {
+      auth: {
+        token: localStorage.getItem('guardcall_token') || ''
+      }
+    });
+    socketRef.current = newSocket;
+    setSocket(newSocket);
 
-    socketRef.current.on('connect', () => {
+    newSocket.on('connect', () => {
       setIsConnected(true);
     });
 
-    socketRef.current.on('disconnect', () => {
+    newSocket.on('disconnect', () => {
       setIsConnected(false);
     });
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+      newSocket.disconnect();
     };
   }, []);
 
-  return { socket: socketRef.current, isConnected };
+  return { socket, isConnected };
 };
