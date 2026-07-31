@@ -5,6 +5,7 @@ import { Server, Socket } from 'socket.io';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import helmet from 'helmet';
+import jwt from 'jsonwebtoken';
 
 /**
  * ─── IPv6 RESOLUTION FIX ───
@@ -65,6 +66,27 @@ app.use('/api/deepgram', deepgramRoutes);
 // Error Handler
 app.use(errorHandler);
 
+/**
+ * ─── SOCKET.IO JWT AUTHENTICATION ───
+ * Verifies JWT tokens on WebSocket connections to prevent unauthorized access.
+ * Tokens are passed via the handshake auth object from the client.
+ */
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) {
+    return next(new Error('Authentication error: No token provided'));
+  }
+  try {
+    if (!process.env.JWT_SECRET) {
+      return next(new Error('Server configuration error'));
+    }
+    jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (err) {
+    next(new Error('Authentication error: Invalid token'));
+  }
+});
+
 // Socket.IO
 io.on('connection', (socket: Socket) => {
   logger.info(`Socket connected: ${socket.id}`);
@@ -87,3 +109,32 @@ if (process.env.NODE_ENV !== 'test') {
     logger.error('Failed to connect to database', { error: err.message });
   });
 }
+
+/**
+ * ─── GRACEFUL SHUTDOWN HANDLER ───
+ * Ensures clean termination by closing all active connections before process exit.
+ * Handles SIGTERM (container orchestrators) and SIGINT (Ctrl+C) signals.
+ */
+const gracefulShutdown = async (signal: string) => {
+  logger.info(`${signal} received. Starting graceful shutdown...`);
+  
+  server.close(() => {
+    logger.info('HTTP server closed');
+  });
+
+  io.disconnectSockets(true);
+  logger.info('All Socket.IO clients disconnected');
+
+  try {
+    const mongoose = await import('mongoose');
+    await mongoose.default.connection.close();
+    logger.info('MongoDB connection closed');
+  } catch (err: any) {
+    logger.error('Error closing MongoDB connection', { error: err.message });
+  }
+
+  process.exit(0);
+};
+
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));

@@ -1,4 +1,5 @@
 import Groq from 'groq-sdk';
+import type { ChatCompletionCreateParamsNonStreaming } from 'groq-sdk/resources/chat/completions';
 import { z } from 'zod';
 import logger from '../utils/logger.js';
 
@@ -28,7 +29,7 @@ const COOLDOWN_DURATION = 5 * 60 * 1000;
  * It tries each available model in order. If all are on cooldown, it falls back
  * to attempting all models again.
  */
-const executeWithFallback = async (options: any) => {
+const executeWithFallback = async (options: Omit<ChatCompletionCreateParamsNonStreaming, 'model'>) => {
   let lastError;
   const now = Date.now();
 
