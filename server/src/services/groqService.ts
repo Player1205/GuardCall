@@ -128,17 +128,52 @@ const RiskScoreSchema = z.object({
 
 export type RiskScore = z.infer<typeof RiskScoreSchema>;
 
-const sanitizeTranscript = (text: string): string => {
-  return text
+/**
+ * ─── LOCAL PII MASKING ───
+ * Fast, server-side regex PII scrubber that runs locally before any transcript
+ * is sent to external LLM APIs (Groq). Replaces sensitive identifiers with
+ * descriptive placeholders while preserving threat context for scam detection.
+ *
+ * Handles: Aadhaar, PAN, bank accounts, OTPs, phone numbers, and contextual names.
+ * Preserves: Rupee amounts, scammer statements, and threat keywords.
+ */
+const maskPIILocally = (text: string): string => {
+  let result = text
+    // ── Devanagari STT Normalization ──
     .replace(/शर्मा/g, 'Sharma')
     .replace(/आधार/g, 'Aadhaar')
     .replace(/आधा/g, 'Aadhaar')
-    .replace(/फेडएक्स/g, 'FedEx');
+    .replace(/फेडएक्स/g, 'FedEx')
+    // ── Government & Financial Identifiers ──
+    // Aadhaar Number: 12 digits with optional spaces/hyphens (e.g., 1234 5678 9012)
+    .replace(/\b\d{4}[-\s]?\d{4}[-\s]?\d{4}\b/g, '[AADHAAR]')
+    // PAN Card: 5 uppercase letters + 4 digits + 1 uppercase letter (e.g., ABCDE1234F)
+    .replace(/\b[A-Z]{5}\d{4}[A-Z]\b/g, '[PAN]')
+    // Bank Account / Card Numbers: 9 to 18 contiguous digits
+    .replace(/\b\d{9,18}\b/g, '[ACCOUNT]')
+    // OTP / PIN / Passcode: 4-8 digits following trigger keywords
+    .replace(/\b(otp|pin|passcode|code)\s*(?:is|:|was)?\s*\d{4,8}\b/gi, '$1 [OTP]')
+    // Phone Numbers: 10-digit Indian mobile numbers starting with 6-9
+    .replace(/\b[6-9]\d{9}\b/g, '[PHONE]');
+
+  // ── Contextual Name Redaction ──
+  // Names following self-identification phrases (e.g., "My name is Vansh Verma")
+  result = result.replace(
+    /(?:[Mm]y name is|[Ss]peaking to|[Aa]m [Ii] speaking to)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/g,
+    (match, name) => match.replace(name, '[NAME]')
+  );
+  // Names following authority titles (e.g., "Inspector Sharma", "Mr. Gupta")
+  result = result.replace(
+    /\b(?:[Ii]nspector|[Oo]fficer|[Mm]r\.?|[Mm]rs\.?|[Mm]s\.?)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,1})/g,
+    (match, name) => match.replace(name, '[NAME]')
+  );
+
+  return result;
 };
 
 export const scoreRisk = async (transcript: string, lastCoaching: string = ''): Promise<RiskScore> => {
   try {
-    const cleanTranscript = sanitizeTranscript(transcript);
+    const cleanTranscript = maskPIILocally(transcript);
     // Focus on the last 3 transcript lines for scoring
     const transcriptLines = cleanTranscript.trim().split('\n').filter(line => line.trim().length > 0);
     const latestStatements = transcriptLines.slice(-3).join('\n');
@@ -172,7 +207,7 @@ export const scrubPII = async (transcript: string): Promise<string> => {
     const response = await executeWithFallback({
       messages: [
         { role: 'system', content: `Redact PII from this transcript. Replace: Aadhaar numbers with [AADHAAR], bank accounts with [ACCOUNT], addresses with [ADDRESS], full names of the victim with [NAME], phone numbers other than the scammer's with [PHONE]. Keep all scammer statements intact. Return ONLY the redacted transcript text, nothing else.` },
-        { role: 'user', content: transcript }
+        { role: 'user', content: maskPIILocally(transcript) }
       ],
       temperature: 0,
       max_tokens: 2000
@@ -216,7 +251,7 @@ RESPOND ONLY WITH VALID JSON in this exact format:
   "recommendedAction": "<what victim should do now>",
   "formalComplaintText": "<complete paragraph for police FIR submission>"
 }` },
-        { role: 'user', content: `Caller Number: ${callerNumber}\nCall Duration: ${callDuration}\nPeak Risk Score: ${peakRiskScore}/100\n\nTRANSCRIPT:\n${transcript}` }
+        { role: 'user', content: `Caller Number: ${callerNumber}\nCall Duration: ${callDuration}\nPeak Risk Score: ${peakRiskScore}/100\n\nTRANSCRIPT:\n${maskPIILocally(transcript)}` }
       ],
       temperature: 0.2,
       max_tokens: 1500,
