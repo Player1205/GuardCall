@@ -229,6 +229,18 @@ const ReportView: React.FC = () => {
             <FileText className="w-4 h-4" /> Export CSV
           </button>
         </motion.div>
+
+        {/* Dashboard Navigation */}
+        <motion.div variants={itemVariants} className="mt-4">
+          <button 
+            onClick={() => navigate('/dashboard')}
+            className="w-full py-3.5 px-4 bg-[#132238] border border-primary/30 hover:bg-primary/10 hover:border-primary/50 text-primary-light rounded-xl font-medium transition-all flex items-center justify-center gap-2 active:scale-[0.98] shadow-[0_0_15px_rgba(29,158,117,0.15)]"
+          >
+            <ShieldAlert className="w-5 h-5" />
+            Open Security Dashboard
+          </button>
+        </motion.div>
+
         <motion.div variants={itemVariants} className="text-center">
           <button 
             onClick={() => navigate('/')}
