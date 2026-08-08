@@ -17,6 +17,10 @@ export interface IReport extends Document {
   recommendedAction?: string;
   formalComplaintText?: string;
   peakRiskScore: number;
+  investigationStatus: 'Suspected' | 'Verified' | 'Needs Review';
+  investigatorNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -36,6 +40,10 @@ const reportSchema = new mongoose.Schema<IReport>({
   recommendedAction: { type: String },
   formalComplaintText: { type: String },
   peakRiskScore: { type: Number, required: true },
+  investigationStatus: { type: String, enum: ['Suspected', 'Verified', 'Needs Review'], default: 'Needs Review', index: true },
+  investigatorNotes: { type: String, default: '' },
+  reviewedBy: { type: String },
+  reviewedAt: { type: Date },
 }, { timestamps: true });
 
 const Report: Model<IReport> = mongoose.model<IReport>('Report', reportSchema);

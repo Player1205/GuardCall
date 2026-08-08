@@ -4,6 +4,8 @@ import NumberCheck from './components/NumberCheck';
 import ConsentBanner from './components/ConsentBanner';
 import CallSession from './components/CallSession';
 import ReportView from './components/ReportView';
+import SecurityCasesDashboard from './components/SecurityCasesDashboard';
+import { RoleProvider } from './context/RoleContext';
 
 const pageVariants: Variants = {
   initial: {
@@ -76,6 +78,14 @@ function AnimatedRoutes() {
           }
         />
         <Route
+          path="/dashboard"
+          element={
+            <PageWrapper>
+              <SecurityCasesDashboard />
+            </PageWrapper>
+          }
+        />
+        <Route
           path="/report"
           element={
             <PageWrapper>
@@ -90,9 +100,11 @@ function AnimatedRoutes() {
 
 function App() {
   return (
-    <Router>
-      <AnimatedRoutes />
-    </Router>
+    <RoleProvider>
+      <Router>
+        <AnimatedRoutes />
+      </Router>
+    </RoleProvider>
   );
 }
 

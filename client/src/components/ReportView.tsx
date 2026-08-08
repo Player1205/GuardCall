@@ -1,14 +1,17 @@
 import React, { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, Variants } from 'framer-motion';
-import { ShieldAlert, FileDown, ExternalLink, AlertTriangle, Hash, Activity, Home, Copy, CheckCircle } from 'lucide-react';
+import { ShieldAlert, FileDown, ExternalLink, AlertTriangle, Hash, Activity, Home, Copy, CheckCircle, FileText, Download } from 'lucide-react';
 import { generatePDFReport, ReportData } from '../services/reportPDF';
 import { reportToCommunityDB } from '../services/api';
+import InvestigationPanel from './InvestigationPanel';
+import { exportToHTML, exportToCSV, ExportableReport } from '../services/reportExport';
 
 const ReportView: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const report = location.state?.report as ReportData;
+  const reportId = location.state?.reportId as string | undefined;
   const [copied, setCopied] = React.useState(false);
   const [isReporting, setIsReporting] = React.useState(false);
 
@@ -178,6 +181,54 @@ const ReportView: React.FC = () => {
         </motion.div>
         
 
+        {/* Investigation Panel (only when reportId is available from dashboard) */}
+        {reportId && (
+          <motion.div variants={itemVariants} className="mt-6">
+            <InvestigationPanel
+              reportId={reportId}
+              currentStatus="Needs Review"
+              currentNotes=""
+            />
+          </motion.div>
+        )}
+
+        {/* Additional Export Options */}
+        <motion.div variants={itemVariants} className="flex gap-3 mt-4">
+          <button
+            onClick={() => {
+              const exportable: ExportableReport = {
+                callerNumber: report.callerNumber,
+                peakRiskScore: report.peakRiskScore,
+                scamType: report.scamType,
+                summary: report.summary || '',
+                redFlags: report.redFlags,
+                formalComplaintText: report.formalComplaintText,
+                createdAt: report.createdAt,
+              };
+              exportToHTML(exportable);
+            }}
+            className="flex-1 py-3 px-4 glass-card hover:bg-white/10 rounded-xl font-medium transition-all flex items-center justify-center gap-2 text-sm text-white/80 active:scale-[0.98]"
+          >
+            <Download className="w-4 h-4" /> Export HTML
+          </button>
+          <button
+            onClick={() => {
+              const exportable: ExportableReport = {
+                callerNumber: report.callerNumber,
+                peakRiskScore: report.peakRiskScore,
+                scamType: report.scamType,
+                summary: report.summary || '',
+                redFlags: report.redFlags,
+                formalComplaintText: report.formalComplaintText,
+                createdAt: report.createdAt,
+              };
+              exportToCSV([exportable]);
+            }}
+            className="flex-1 py-3 px-4 glass-card hover:bg-white/10 rounded-xl font-medium transition-all flex items-center justify-center gap-2 text-sm text-white/80 active:scale-[0.98]"
+          >
+            <FileText className="w-4 h-4" /> Export CSV
+          </button>
+        </motion.div>
         <motion.div variants={itemVariants} className="text-center">
           <button 
             onClick={() => navigate('/')}
